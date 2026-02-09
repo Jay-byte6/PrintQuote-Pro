@@ -108,6 +108,10 @@
                 <label class="block text-sm text-slate-400 mb-1" data-i18n="markupPercent" data-i18n-tooltip="markupPercent">Markup %</label>
                 <input type="number" id="markupPercent" value="30" min="0" step="5" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-tooltip="markupPercent">
               </div>
+              <div>
+                <label class="block text-sm text-slate-400 mb-1" data-i18n="profitMarginPercent" data-i18n-tooltip="profitMarginPercent">Profit Margin %</label>
+                <input type="number" id="profitMarginPercent" placeholder="—" min="0" max="99" step="1" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-tooltip="profitMarginPercent">
+              </div>
             </div>
             <!-- Quality Options (Per-category, vendor-defined with price) -->
             <div class="border-t border-slate-700/50 pt-4">
@@ -146,6 +150,16 @@
               <p class="text-xs text-slate-500 mb-3" data-i18n="fileFormatHelp">Recommended format per category. Included in client quote to avoid rework.</p>
               <div id="fileFormatList" class="space-y-2">
                 <!-- Dynamic per category -->
+              </div>
+            </div>
+            <!-- Backup & Restore -->
+            <div class="border-t border-slate-700/50 pt-4">
+              <h3 class="text-sm font-medium text-slate-300 mb-2" data-i18n="backupRestore">Backup & Restore</h3>
+              <p class="text-xs text-slate-500 mb-3" data-i18n="backupRestoreHelp">Save presets and settings to a file. Restore if browser data is cleared.</p>
+              <div class="flex gap-2 flex-wrap">
+                <button type="button" id="btnExport" class="px-3 py-2 bg-emerald-600/80 hover:bg-emerald-500/80 rounded-lg text-sm font-medium transition-colors" data-i18n="exportData" data-i18n-tooltip="exportData">Export</button>
+                <button type="button" id="btnImport" class="px-3 py-2 bg-sky-600/80 hover:bg-sky-500/80 rounded-lg text-sm font-medium transition-colors" data-i18n="importData" data-i18n-tooltip="importData">Import</button>
+                <input type="file" id="importFile" accept=".json,application/json" class="hidden">
               </div>
             </div>
           </div>
@@ -353,11 +367,17 @@
               <div id="summaryTotal" class="text-xl font-semibold text-primary-400">₹0</div>
             </div>
           </div>
-          <div class="flex flex-wrap gap-4 items-center">
+          <div class="flex flex-wrap gap-4 items-center mb-2">
             <div class="flex items-center gap-2">
               <span class="text-slate-400" data-i18n="profitMargin">Profit Margin</span>
               <span id="summaryMargin" class="font-semibold text-emerald-400">0%</span>
             </div>
+            <div class="flex items-center gap-2">
+              <span class="text-slate-400" data-i18n="pricePerUnit">Price per Unit</span>
+              <span id="summaryPerUnit" class="font-semibold text-sky-400">—</span>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-4 items-center">
             <button id="btnCopyClient" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium text-sm transition-colors" data-i18n="copyQuoteClient" data-i18n-tooltip="copyQuoteClient">Copy Quote for Client</button>
           </div>
           <div id="quoteIncludes" class="mt-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50 text-xs text-slate-400">
@@ -410,6 +430,8 @@
         rushMultiplier: "Rush Multiplier (e.g. 1.5x)",
         rushHours: "Rush if within (hours)",
         markupPercent: "Markup %",
+        profitMarginPercent: "Profit Margin %",
+        pricePerUnit: "Price per Unit",
         quoteCalculator: "Quote Calculator",
         presetName: "Preset Name",
         presetNamePlaceholder: "e.g. Premium Glossy Brochure",
@@ -487,7 +509,15 @@
         fileFormatHelp: "Recommended format per category. Included in client quote to avoid rework.",
         aspectRatio: "Aspect Ratio",
         formatLabel: "File Format",
-        quoteIncludes: "Quote includes"
+        quoteIncludes: "Quote includes",
+        backupRestore: "Backup & Restore",
+        backupRestoreHelp: "Save presets and settings to a file. Restore if browser data is cleared.",
+        exportData: "Export",
+        importData: "Import",
+        exportSuccess: "Export successful",
+        importSuccess: "Import successful",
+        importError: "Invalid file. Use a backup file from Export.",
+        importConfirm: "Import will replace current presets and settings. Continue?"
       },
       tooltips: {
         en: {
@@ -495,6 +525,7 @@
           rushMultiplier: "Extra charge when job is urgent. 1.5 = 50% extra.",
           rushHours: "If delivery needed within this many hours, rush fee applies.",
           markupPercent: "Your profit margin added on top of cost.",
+          profitMarginPercent: "Target profit as % of final price. Overrides Markup % when set. Leave empty to use Markup %.",
           presetName: "Give a name to save this setup for quick use later.",
           category: "Type of print job.",
           predefinedSize: "Select standard size (A4, Banner 6x2, etc.) to auto-fill dimensions.",
@@ -517,13 +548,16 @@
           perUnit: "Price × quantity. E.g. T-shirts: ₹50 × 100 = ₹5000",
           perSqFt: "Price × area (sq ft) × quantity. For banners, flex.",
           perSqIn: "Price × area (sq inch) × quantity.",
-          bulkQty: "Same as Per Unit - price × quantity for bulk orders."
+          bulkQty: "Same as Per Unit - price × quantity for bulk orders.",
+          exportData: "Download presets and settings as a JSON backup file.",
+          importData: "Restore presets and settings from an exported backup file."
         },
         ta: {
           hourlyLaborRate: "ஒரு மணி வேலைக்கு எவ்வளவு விகிதம். முயற்சி மணிகளுக்கு பயன்படுத்தப்படும்.",
           rushMultiplier: "அவசர வேலைக்கு கூடுதல் கட்டணம். 1.5 = 50% கூடுதல்.",
           rushHours: "இந்த மணியளவில் டெலிவரி தேவைப்பட்டால் rush fee வரும்.",
           markupPercent: "செலவில் மேல் சேர்க்கும் லாப வரம்பு.",
+          profitMarginPercent: "இறுதி விலையில் லாப %. காலியாக இருந்தால் Markup % பயன்படுத்தும்.",
           presetName: "இந்த setup-க்கு பெயர் கொடுத்து பிறகு quick use பண்ண.",
           category: "அச்சு வேலை வகை.",
           predefinedSize: "Standard size select பண்ணி dimensions auto fill ஆகும்.",
@@ -546,13 +580,16 @@
           perUnit: "Price × quantity. T-shirts போல.",
           perSqFt: "Price × area (sq ft) × quantity. Banners-க்கு.",
           perSqIn: "Price × area (sq inch) × quantity.",
-          bulkQty: "Per Unit போல - bulk order-க்கு."
+          bulkQty: "Per Unit போல - bulk order-க்கு.",
+          exportData: "முன்னரே தயாரிக்கப்பட்டவை மற்றும் அமைப்புகளை JSON கோப்பாகப் பதிவிறக்கு.",
+          importData: "ஏற்றுமதி செய்த காப்பிலிருந்து மீட்டமைக்கவும்."
         },
         "ta-en": {
           hourlyLaborRate: "Workers-க்கு one hour rate எவ்வளவு. Effort hours calculation-க்கு use ஆகும்.",
           rushMultiplier: "Urgent job நா price எவ்வளவு extra. 1.5 = 50% extra.",
           rushHours: "இந்த hours-க்குள் delivery கேட்டா rush fee வரும்.",
           markupPercent: "Cost-க்கு மேலே உன் profit add ஆகும்.",
+          profitMarginPercent: "Final price-ல் profit %. Set பண்ணினா Markup % override ஆகும். Empty விட்டா Markup use ஆகும்.",
           presetName: "Setup-க்கு ஏதாவது name give பண்ணி save பண்ணு. பிறகு quick load பண்ணலாம்.",
           category: "என்ன type print job.",
           predefinedSize: "Standard size select பண்ணு (A4, 6x2 ft) - dimensions auto fill ஆகும்.",
@@ -575,7 +612,9 @@
           perUnit: "Price × quantity. T-shirts போல ஒவ்வொரு piece-க்கும் rate.",
           perSqFt: "Price × area (sq ft) × quantity. Banners போல.",
           perSqIn: "Price × area (sq inch) × quantity.",
-          bulkQty: "Per Unit போல - bulk order-க்கு."
+          bulkQty: "Per Unit போல - bulk order-க்கு.",
+          exportData: "Presets and settings JSON file-க்கு download பண்ணு.",
+          importData: "Export பண்ணிய backup file-லிருந்து restore பண்ணு."
         }
       },
       ta: {
@@ -588,6 +627,8 @@
         rushMultiplier: "அவசர பெருக்கல் (எ.கா 1.5x)",
         rushHours: "அவசரம் - மணிநேரத்திற்குள்",
         markupPercent: "மார்க்அப் %",
+        profitMarginPercent: "லாப வரம்பு %",
+        pricePerUnit: "அலகு விலை",
         quoteCalculator: "விலைப்புள்ளி கணிப்பான்",
         presetName: "முன்னரே தயாரிக்கப்பட்ட பெயர்",
         presetNamePlaceholder: "எ.கா பிரீமியம் கிளாசி பதிப்பு",
@@ -664,7 +705,15 @@
         fileFormatHelp: "வகைக்கு பரிந்துரைக்கப்பட்ட வடிவம். மறுசெயல்பாட்டை தவிர்க்க கிளையன் விலைப்புள்ளியில் சேர்க்கப்பட்டுள்ளது.",
         aspectRatio: "விகிதம்",
         formatLabel: "கோப்பு வடிவம்",
-        quoteIncludes: "விலைப்புள்ளியில் உள்ளது"
+        quoteIncludes: "விலைப்புள்ளியில் உள்ளது",
+        backupRestore: "காப்பு & மீட்டமைப்பு",
+        backupRestoreHelp: "முன்னரே தயாரிக்கப்பட்டவை மற்றும் அமைப்புகளை கோப்பில் சேமிக்கவும்.",
+        exportData: "ஏற்றுமதி",
+        importData: "இறக்குமதி",
+        exportSuccess: "ஏற்றுமதி வெற்றி",
+        importSuccess: "இறக்குமதி வெற்றி",
+        importError: "தவறான கோப்பு. ஏற்றுமதி கோப்பைப் பயன்படுத்தவும்.",
+        importConfirm: "இறக்குமதி தற்போதைய தரவை மாற்றும். தொடரவா?"
       },
       "ta-en": {
         presets: "Presets",
@@ -676,6 +725,8 @@
         rushMultiplier: "Rush Multiplier (e.g. 1.5x)",
         rushHours: "Rush if within (hours)",
         markupPercent: "Markup %",
+        profitMarginPercent: "Profit Margin %",
+        pricePerUnit: "Price per Unit",
         quoteCalculator: "Quote Calculator",
         presetName: "Preset Name",
         presetNamePlaceholder: "e.g. Premium Glossy Brochure",
@@ -753,7 +804,15 @@
         fileFormatHelp: "Categoryக்கு recommended format. Client quote-ல் include பண்ணுவோம்.",
         aspectRatio: "Aspect Ratio",
         formatLabel: "File Format",
-        quoteIncludes: "Quote includes"
+        quoteIncludes: "Quote includes",
+        backupRestore: "Backup & Restore",
+        backupRestoreHelp: "Presets and settings file-க்கு save பண்ணு. Browser data clear ஆனா restore பண்ணலாம்.",
+        exportData: "Export",
+        importData: "Import",
+        exportSuccess: "Export success",
+        importSuccess: "Import success",
+        importError: "Invalid file. Export பண்ணிய backup file use பண்ணு.",
+        importConfirm: "Import பண்ணினா current data replace ஆகும். Continue?"
       }
     };
 
@@ -832,6 +891,7 @@
       rushMultiplier: settings.rushMultiplier ?? 1.5,
       rushHours: settings.rushHours ?? 48,
       markupPercent: settings.markupPercent ?? 30,
+      profitMarginPercent: settings.profitMarginPercent ?? null,
       qualityByCategory: settings.qualityByCategory ?? defaultQualityByCategory,
       fileFormatByCategory: settings.fileFormatByCategory ?? {
         banner: 'PDF, AI, 150 DPI min, CMYK',
@@ -1058,11 +1118,14 @@
 
     // ============ CALCULATIONS ============
     function getSettings() {
+      const pm = $('profitMarginPercent')?.value?.trim();
+      const profitMarginPercent = pm !== '' && pm !== '—' ? parseFloat(pm) : null;
       return {
         hourlyLaborRate: parseFloat($('hourlyLaborRate').value) || 500,
         rushMultiplier: parseFloat($('rushMultiplier').value) || 1.5,
         rushHours: parseInt($('rushHours').value) || 48,
         markupPercent: parseFloat($('markupPercent').value) || 30,
+        profitMarginPercent: (profitMarginPercent != null && !isNaN(profitMarginPercent) && profitMarginPercent > 0 && profitMarginPercent < 100) ? profitMarginPercent : null,
         qualityByCategory: settings.qualityByCategory || {},
         fileFormatByCategory: settings.fileFormatByCategory || {}
       };
@@ -1112,11 +1175,18 @@
         }
       }
 
-      const markup = subtotal * (s.markupPercent / 100);
-      const totalPrice = subtotal + markup;
+      let totalPrice, markup;
+      if (s.profitMarginPercent != null && s.profitMarginPercent > 0 && s.profitMarginPercent < 100) {
+        totalPrice = subtotal / (1 - s.profitMarginPercent / 100);
+        markup = totalPrice - subtotal;
+      } else {
+        markup = subtotal * (s.markupPercent / 100);
+        totalPrice = subtotal + markup;
+      }
       const internalCost = subtotal;
       const profitMargin = internalCost > 0 ? ((totalPrice - internalCost) / totalPrice * 100).toFixed(1) : 0;
 
+      const perUnitPrice = qty > 0 ? totalPrice / qty : null;
       return {
         productionCost,
         laborCost,
@@ -1127,7 +1197,9 @@
         markup,
         totalPrice,
         profitMargin,
-        internalCost
+        internalCost,
+        perUnitPrice,
+        quantity: qty
       };
     }
 
@@ -1138,6 +1210,8 @@
       $('summaryExtras').textContent = `₹${(calc.extrasCost).toFixed(2)}`;
       $('summaryTotal').textContent = `₹${calc.totalPrice.toFixed(2)}`;
       $('summaryMargin').textContent = `${calc.profitMargin}%`;
+      const perUnitEl = $('summaryPerUnit');
+      if (perUnitEl) perUnitEl.textContent = calc.perUnitPrice != null ? `₹${calc.perUnitPrice.toFixed(2)}` : '—';
       const state = getFormState();
       const arEl = $('quoteAspectRatio');
       const ffEl = $('quoteFileFormat');
@@ -1299,9 +1373,9 @@
 
       const isTamil = currentLang === 'ta';
       const isTanglish = currentLang === 'ta-en';
-      const quoteLabels = isTamil ? { title: 'விலைப்புள்ளி', service: 'சேவை:', specs: 'விவரங்கள்:', aspect: 'விகிதம்:', format: 'கோப்பு வடிவம்:', qty: 'அளவு:', total: 'மொத்த விலை:', date: 'தேதி:' } :
-        isTanglish ? { title: 'QUOTE', service: 'Service:', specs: 'Specs:', aspect: 'Aspect Ratio:', format: 'File Format:', qty: 'Quantity:', total: 'Total Price:', date: 'Date:' } :
-        { title: 'QUOTE', service: 'Service:', specs: 'Specs:', aspect: 'Aspect Ratio:', format: 'File Format:', qty: 'Quantity:', total: 'Total Price:', date: 'Date:' };
+      const quoteLabels = isTamil ? { title: 'விலைப்புள்ளி', service: 'சேவை:', specs: 'விவரங்கள்:', aspect: 'விகிதம்:', format: 'கோப்பு வடிவம்:', qty: 'அளவு:', total: 'மொத்த விலை:', perUnit: 'அலகு விலை:', date: 'தேதி:' } :
+        isTanglish ? { title: 'QUOTE', service: 'Service:', specs: 'Specs:', aspect: 'Aspect Ratio:', format: 'File Format:', qty: 'Quantity:', total: 'Total Price:', perUnit: 'Per Unit:', date: 'Date:' } :
+        { title: 'QUOTE', service: 'Service:', specs: 'Specs:', aspect: 'Aspect Ratio:', format: 'File Format:', qty: 'Quantity:', total: 'Total Price:', perUnit: 'Per Unit:', date: 'Date:' };
       const dateLocale = (isTamil || isTanglish) ? 'ta-IN' : 'en-IN';
       const lines = [
         '═══════════════════════════════',
@@ -1314,6 +1388,7 @@
         quoteLabels.format + ' ' + fileFormat,
         quoteLabels.qty + ' ' + state.quantity,
         quoteLabels.total + ' ₹' + calc.totalPrice.toFixed(2),
+        ...(calc.perUnitPrice != null ? [quoteLabels.perUnit + ' ₹' + calc.perUnitPrice.toFixed(2)] : []),
         quoteLabels.date + ' ' + new Date().toLocaleDateString(dateLocale),
         '',
         '═══════════════════════════════'
@@ -1377,6 +1452,8 @@
       $('rushMultiplier').value = settings.rushMultiplier;
       $('rushHours').value = settings.rushHours;
       $('markupPercent').value = settings.markupPercent;
+      const pmEl = $('profitMarginPercent');
+      if (pmEl) pmEl.value = settings.profitMarginPercent != null ? settings.profitMarginPercent : '';
 
       $('btnOpenSidebar')?.addEventListener('click', openSidebar);
       $('toggleSidebar')?.addEventListener('click', closeSidebar);
@@ -1477,8 +1554,73 @@
         });
       });
 
+      // Export / Import backup
+      $('btnExport')?.addEventListener('click', () => {
+        settings = getSettings();
+        const payload = {
+          presets,
+          settings,
+          lang: currentLang,
+          exportedAt: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `printquote-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        alert(t('exportSuccess'));
+      });
+
+      $('btnImport')?.addEventListener('click', () => {
+        $('importFile').click();
+      });
+
+      $('importFile')?.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const data = JSON.parse(reader.result);
+            if (!Array.isArray(data.presets) || !data.settings || typeof data.settings !== 'object') {
+              alert(t('importError'));
+              return;
+            }
+            if (!confirm(t('importConfirm'))) return;
+            presets = data.presets;
+            settings = data.settings;
+            if (data.lang && ['en','ta','ta-en'].includes(data.lang)) {
+              currentLang = data.lang;
+              localStorage.setItem('printquote_lang', currentLang);
+              $('langToggle').value = currentLang;
+            }
+            localStorage.setItem('printquote_presets', JSON.stringify(presets));
+            localStorage.setItem('printquote_settings', JSON.stringify(settings));
+            $('hourlyLaborRate').value = settings.hourlyLaborRate ?? 500;
+            $('rushMultiplier').value = settings.rushMultiplier ?? 1.5;
+            $('rushHours').value = settings.rushHours ?? 48;
+            $('markupPercent').value = settings.markupPercent ?? 30;
+            const pmEl = $('profitMarginPercent');
+            if (pmEl) pmEl.value = settings.profitMarginPercent != null ? settings.profitMarginPercent : '';
+            applyTranslations();
+            populateQualityOptionsList();
+            populateQualityDropdown();
+            populateFileFormatList();
+            renderPresetList();
+            updateSummary();
+            alert(t('importSuccess'));
+          } catch (err) {
+            alert(t('importError'));
+          }
+        };
+        reader.readAsText(file);
+      });
+
       // Save settings on change
-      ['hourlyLaborRate', 'rushMultiplier', 'rushHours', 'markupPercent'].forEach(id => {
+      ['hourlyLaborRate', 'rushMultiplier', 'rushHours', 'markupPercent', 'profitMarginPercent'].forEach(id => {
         $(id)?.addEventListener('change', () => {
           settings = getSettings();
           localStorage.setItem('printquote_settings', JSON.stringify(settings));
