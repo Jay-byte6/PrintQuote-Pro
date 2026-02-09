@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrintQuote Pro - Dynamic Print Quote ERP</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a' },
+            slate: { 850: '#172033', 925: '#0f172a' }
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .tamil-font { font-family: 'Noto Sans Tamil', sans-serif; }
+    [data-lang="ta"] .tamil-display, [data-lang="ta"] body { font-family: 'Noto Sans Tamil', 'Plus Jakarta Sans', sans-serif; }
+    [data-lang="ta-en"] body { font-family: 'Noto Sans Tamil', 'Plus Jakarta Sans', sans-serif; }
+    .preset-item:hover { background: rgba(59, 130, 246, 0.1); }
+    .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+    .print-only { display: none; }
+    @media print {
+      .no-print { display: none !important; }
+      .print-only { display: block !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-925 text-slate-100 min-h-screen antialiased">
+  <div id="app" class="flex flex-col lg:flex-row min-h-screen">
+    <!-- Sidebar - Preset Management -->
+    <aside id="sidebar" class="w-full lg:w-72 bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-700/50 flex-shrink-0 no-print transition-transform lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-30 lg:z-auto -translate-x-full">
+      <div class="p-4 border-b border-slate-700/50">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-white" data-i18n="presets">Presets</h2>
+          <button id="toggleSidebar" class="lg:hidden p-2 rounded-lg hover:bg-slate-700/50">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="flex gap-2">
+          <button id="btnSavePreset" class="flex-1 px-3 py-2 bg-primary-600 hover:bg-primary-500 rounded-lg text-sm font-medium transition-colors" data-i18n="savePreset" data-i18n-tooltip="savePreset">Save Preset</button>
+          <button id="btnQuickEdit" class="px-3 py-2 bg-amber-600/80 hover:bg-amber-500/80 rounded-lg text-sm font-medium transition-colors" data-i18n="quickEdit" data-i18n-tooltip="quickEdit">Quick Edit</button>
+        </div>
+        <div class="mt-3">
+          <input type="text" id="presetSearch" placeholder="Search presets..." class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none placeholder-slate-500" data-i18n-placeholder="searchPresetsPlaceholder" data-i18n-tooltip="searchPresets">
+        </div>
+      </div>
+      <div class="p-4 pt-0 overflow-y-auto max-h-[calc(100vh-200px)] scrollbar-thin">
+        <div id="presetList" class="space-y-1">
+          <!-- Presets loaded dynamically -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-20 lg:hidden hidden" aria-hidden="true"></div>
+    <main class="flex-1 overflow-auto">
+      <!-- Header -->
+      <header class="sticky top-0 z-20 bg-slate-925/95 backdrop-blur border-b border-slate-700/50 px-4 py-3 no-print">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <button id="btnOpenSidebar" class="lg:hidden p-2 rounded-lg hover:bg-slate-700/50" aria-label="Open presets">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <h1 class="text-xl font-bold text-white">PrintQuote Pro</h1>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <span class="text-sm text-slate-400" data-i18n="language">Language</span>
+              <select id="langToggle" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                <option value="en">English</option>
+                <option value="ta">தமிழ் (Tamil)</option>
+                <option value="ta-en">Tanglish (தமிழ்+English)</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      </header>
+
+      <div class="p-4 lg:p-6 space-y-6">
+        <!-- Settings Panel (Collapsible) -->
+        <section class="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
+          <button id="toggleSettings" class="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-700/30 transition-colors">
+            <span class="font-medium" data-i18n="settings">Settings</span>
+            <svg id="settingsChevron" class="w-5 h-5 text-slate-400 transition-transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="settingsPanel" class="border-t border-slate-700/50 p-4 space-y-6">
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label class="block text-sm text-slate-400 mb-1" data-i18n="hourlyLaborRate" data-i18n-tooltip="hourlyLaborRate">Hourly Labor Rate (₹)</label>
+                <input type="number" id="hourlyLaborRate" value="500" min="0" step="50" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-tooltip="hourlyLaborRate">
+              </div>
+              <div>
+                <label class="block text-sm text-slate-400 mb-1" data-i18n="rushMultiplier" data-i18n-tooltip="rushMultiplier">Rush Multiplier (e.g. 1.5x)</label>
+                <input type="number" id="rushMultiplier" value="1.5" min="1" step="0.1" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-tooltip="rushMultiplier">
+              </div>
+              <div>
+                <label class="block text-sm text-slate-400 mb-1" data-i18n="rushHours" data-i18n-tooltip="rushHours">Rush if within (hours)</label>
+                <input type="number" id="rushHours" value="48" min="1" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-tooltip="rushHours">
+              </div>
+              <div>
+                <label class="block text-sm text-slate-400 mb-1" data-i18n="markupPercent" data-i18n-tooltip="markupPercent">Markup %</label>
+                <input type="number" id="markupPercent" value="30" min="0" step="5" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-tooltip="markupPercent">
+              </div>
+            </div>
+            <!-- Quality Options (Per-category, vendor-defined with price) -->
+            <div class="border-t border-slate-700/50 pt-4">
+              <h3 class="text-sm font-medium text-slate-300 mb-1" data-i18n="qualityOptions">Quality Variations (per category)</h3>
+              <p class="text-xs text-slate-500 mb-3" data-i18n="qualityOptionsHelp">Select a category below → Add quality name + price → Use in quote calculator.</p>
+              <div class="mb-3">
+                <label class="block text-xs text-slate-500 mb-1" data-i18n="qualityCategory">Category</label>
+                <select id="qualitySettingsCategory" class="w-full sm:w-48 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                  <option value="banner" data-i18n="banner">Banner</option>
+                  <option value="brochure" data-i18n="brochure">Brochure</option>
+                  <option value="poster" data-i18n="poster">Poster</option>
+                  <option value="pamphlet" data-i18n="pamphlet">Pamphlet</option>
+                  <option value="apparel" data-i18n="apparel">Apparel</option>
+                  <option value="sticker" data-i18n="sticker">Sticker</option>
+                  <option value="businesscard" data-i18n="businessCard">Business Card</option>
+                </select>
+              </div>
+              <div id="qualityOptionsList" class="space-y-2 mb-3 max-h-48 overflow-y-auto scrollbar-thin">
+                <!-- Dynamic: name + price per category -->
+              </div>
+              <div class="flex gap-2 flex-wrap items-end">
+                <div>
+                  <label class="block text-xs text-slate-500 mb-1" data-i18n="qualityName">Name</label>
+                  <input type="text" id="newQualityName" placeholder="e.g. 100 GSM" class="w-36 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs text-slate-500 mb-1" data-i18n="qualityPrice">Price (₹)</label>
+                  <input type="number" id="newQualityPrice" value="0" min="0" step="0.5" placeholder="0" class="w-24 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-tooltip="qualityPrice">
+                </div>
+                <button type="button" id="addQualityOption" class="px-3 py-1.5 bg-primary-600 hover:bg-primary-500 rounded-lg text-sm font-medium" data-i18n="addQualityOption">+ Add</button>
+              </div>
+            </div>
+            <!-- File Format (per category, for client quote) -->
+            <div class="border-t border-slate-700/50 pt-4">
+              <h3 class="text-sm font-medium text-slate-300 mb-2" data-i18n="fileFormat">File Format for Quote</h3>
+              <p class="text-xs text-slate-500 mb-3" data-i18n="fileFormatHelp">Recommended format per category. Included in client quote to avoid rework.</p>
+              <div id="fileFormatList" class="space-y-2">
+                <!-- Dynamic per category -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Calculator Form -->
+        <section class="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4 lg:p-6">
+          <h2 class="text-lg font-semibold mb-4" data-i18n="quoteCalculator">Quote Calculator</h2>
+
+          <div class="space-y-6">
+            <!-- Preset Name & Category -->
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm text-slate-400 mb-1" data-i18n="presetName" data-i18n-tooltip="presetName">Preset Name</label>
+                <input type="text" id="presetName" placeholder="e.g. Premium Glossy Brochure" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-placeholder="presetNamePlaceholder" data-i18n-tooltip="presetName">
+              </div>
+              <div>
+                <label class="block text-sm text-slate-400 mb-1" data-i18n="category" data-i18n-tooltip="category">Category</label>
+                <select id="category" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-tooltip="category">
+                  <option value="banner" data-i18n="banner">Banner</option>
+                  <option value="brochure" data-i18n="brochure">Brochure</option>
+                  <option value="poster" data-i18n="poster">Poster</option>
+                  <option value="pamphlet" data-i18n="pamphlet">Pamphlet</option>
+                  <option value="apparel" data-i18n="apparel">Apparel (T-Shirts)</option>
+                  <option value="sticker" data-i18n="sticker">Sticker</option>
+                  <option value="businesscard" data-i18n="businessCard">Business Card</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Pricing Unit: How base price is applied -->
+            <div>
+              <label class="block text-sm text-slate-400 mb-1" data-i18n="pricingUnit">Pricing Formula</label>
+              <p class="text-xs text-slate-500 mb-2" data-i18n="pricingUnitHelp">How the base price is multiplied: per item, per area, or bulk total</p>
+              <div class="flex flex-wrap gap-3">
+                <label class="flex items-center gap-2 cursor-pointer" data-i18n-tooltip="perUnit">
+                  <input type="radio" name="unitType" value="per_unit" checked class="text-primary-500">
+                  <span data-i18n="perUnit">Per Unit</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer" data-i18n-tooltip="perSqFt">
+                  <input type="radio" name="unitType" value="per_sqft" class="text-primary-500">
+                  <span data-i18n="perSqFt">Per Sq. Ft</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer" data-i18n-tooltip="perSqIn">
+                  <input type="radio" name="unitType" value="per_sqin" class="text-primary-500">
+                  <span data-i18n="perSqIn">Per Sq. Inch</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer" data-i18n-tooltip="bulkQty">
+                  <input type="radio" name="unitType" value="bulk" class="text-primary-500">
+                  <span data-i18n="bulkQty">Bulk Quantity</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Size & Quantity -->
+            <div class="flex flex-col lg:flex-row gap-6">
+              <div class="flex-1 space-y-4">
+                <div class="flex flex-wrap gap-4 items-end">
+                  <div>
+                    <label class="block text-sm text-slate-400 mb-1" data-i18n="predefinedSize" data-i18n-tooltip="predefinedSize">Predefined Size</label>
+                    <select id="predefinedSize" class="w-48 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none text-sm" data-i18n-tooltip="predefinedSize">
+                      <option value="" data-i18n="custom">Custom</option>
+                      <!-- Populated by category -->
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-slate-400 mb-1" data-i18n="sizeUnit" data-i18n-tooltip="sizeUnit">Size Unit</label>
+                    <select id="sizeUnit" class="w-28 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none text-sm" data-i18n-tooltip="sizeUnit">
+                      <option value="in">in</option>
+                      <option value="cm">cm</option>
+                      <option value="ft">ft</option>
+                      <option value="mm">mm</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-slate-400 mb-1" data-i18n="width" data-i18n-tooltip="width">Width</label>
+                    <input type="number" id="width" value="0" min="0" step="0.01" class="w-24 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-tooltip="width">
+                  </div>
+                  <div>
+                    <label class="block text-sm text-slate-400 mb-1" data-i18n="height" data-i18n-tooltip="height">Height</label>
+                    <input type="number" id="height" value="0" min="0" step="0.01" class="w-24 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-tooltip="height">
+                  </div>
+                  <div>
+                    <label class="block text-sm text-slate-400 mb-1" data-i18n="quantity" data-i18n-tooltip="quantity">Quantity</label>
+                    <input type="number" id="quantity" value="100" min="1" class="w-24 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-tooltip="quantity">
+                  </div>
+                  <div>
+                    <label class="block text-sm text-slate-400 mb-1" data-i18n="basePrice" data-i18n-tooltip="basePrice">Base Price (₹)</label>
+                    <input type="number" id="basePrice" value="0" min="0" step="0.01" class="w-28 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-tooltip="basePrice">
+                  </div>
+                </div>
+              </div>
+              <!-- Size Reference Visual -->
+              <div class="lg:w-52 flex-shrink-0">
+                <label class="block text-sm text-slate-400 mb-2" data-i18n="sizePreview">Size Preview</label>
+                <div id="sizePreview" class="aspect-square max-w-full bg-slate-800/80 border-2 border-slate-600 rounded-xl overflow-hidden flex items-center justify-center relative shadow-inner" style="min-height: 140px;">
+                  <div id="sizePreviewShape" class="bg-gradient-to-br from-primary-500/50 to-primary-600/30 border-2 border-primary-400/80 rounded-sm shadow-lg transition-all duration-300" style="width: 50%; height: 70%; min-width: 20px; min-height: 20px;"></div>
+                </div>
+                <p id="sizePreviewLabel" class="text-xs text-slate-400 mt-1 text-center">0 × 0</p>
+              </div>
+            </div>
+
+            <!-- Material & Quality -->
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm text-slate-400 mb-1" data-i18n="selectQuality" data-i18n-tooltip="selectedQuality">Quality / Material</label>
+                <select id="selectedQuality" class="w-full sm:w-64 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-tooltip="selectedQuality">
+                  <option value="" data-i18n="selectQualityPlaceholder">Select quality...</option>
+                  <!-- Populated from Settings quality options -->
+                </select>
+                <p class="text-xs text-slate-500 mt-1" data-i18n="qualityOptionsSource">Per category in Settings. Selected quality sets the unit price.</p>
+              </div>
+              <div>
+                <label class="block text-sm text-slate-400 mb-1" data-i18n="customMaterialNotes">Custom Material Notes</label>
+                <input type="text" id="customMaterialNotes" placeholder="Free text for special material requirements" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-placeholder="materialNotesPlaceholder">
+              </div>
+            </div>
+
+            <!-- Paper Specific (Banner, Brochure, Pamphlet, Business Card) -->
+            <div id="paperSection" class="space-y-4">
+              <h3 class="text-sm font-medium text-slate-300" data-i18n="paperDetails">Paper / Printing Details</h3>
+              <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label class="block text-sm text-slate-400 mb-1" data-i18n="gsm">GSM / Thickness</label>
+                  <select id="gsm" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none">
+                    <option value="80">80 GSM</option>
+                    <option value="100">100 GSM</option>
+                    <option value="128">128 GSM</option>
+                    <option value="200">200 GSM</option>
+                    <option value="250">250 GSM</option>
+                    <option value="300">300 GSM</option>
+                    <option value="350">350 GSM</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm text-slate-400 mb-1" data-i18n="sides">Sides</label>
+                  <select id="sides" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none">
+                    <option value="1" data-i18n="singleSided">Single Sided</option>
+                    <option value="2" data-i18n="doubleSided">Double Sided</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm text-slate-400 mb-1" data-i18n="shape">Shape / Folding</label>
+                  <input type="text" id="shape" placeholder="e.g. A4, Tri-fold" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-placeholder="shapePlaceholder">
+                </div>
+              </div>
+            </div>
+
+            <!-- Labor & Die-Cut -->
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label class="block text-sm text-slate-400 mb-1" data-i18n="effortHours" data-i18n-tooltip="effortHours">Effort Hours</label>
+                <input type="number" id="effortHours" value="0" min="0" step="0.25" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-tooltip="effortHours">
+              </div>
+              <div>
+                <label class="block text-sm text-slate-400 mb-1" data-i18n="dieCutCost" data-i18n-tooltip="dieCutCost">Die-Cut Cost (₹)</label>
+                <input type="number" id="dieCutCost" value="0" min="0" step="0.01" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-tooltip="dieCutCost">
+              </div>
+              <div>
+                <label class="block text-sm text-slate-400 mb-1" data-i18n="dieCutType">Die-Cut Type</label>
+                <select id="dieCutType" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none">
+                  <option value="fixed" data-i18n="fixed">Fixed</option>
+                  <option value="per_unit" data-i18n="perUnit">Per Unit</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm text-slate-400 mb-1" data-i18n="neededBy" data-i18n-tooltip="neededBy">Needed By</label>
+                <input type="datetime-local" id="neededBy" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-tooltip="neededBy">
+              </div>
+            </div>
+
+            <!-- Optional Extras -->
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm text-slate-400 mb-1" data-i18n="transportationCost" data-i18n-tooltip="transportCost">Transportation Cost (₹)</label>
+                <input type="number" id="transportCost" value="0" min="0" step="0.01" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-tooltip="transportCost">
+              </div>
+              <div>
+                <label class="block text-sm text-slate-400 mb-1" data-i18n="miscCost" data-i18n-tooltip="miscCost">Miscellaneous Cost (₹)</label>
+                <input type="number" id="miscCost" value="0" min="0" step="0.01" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none" data-i18n-tooltip="miscCost">
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Financial Summary -->
+        <section class="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4 lg:p-6">
+          <h2 class="text-lg font-semibold mb-4" data-i18n="quoteSummary">Quote Summary</h2>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div class="bg-slate-800 rounded-lg p-4 border border-slate-700/50">
+              <div class="text-sm text-slate-400" data-i18n="productionCost">Production Cost</div>
+              <div id="summaryProduction" class="text-xl font-semibold text-white">₹0</div>
+            </div>
+            <div class="bg-slate-800 rounded-lg p-4 border border-slate-700/50">
+              <div class="text-sm text-slate-400" data-i18n="labor">Labor</div>
+              <div id="summaryLabor" class="text-xl font-semibold text-white">₹0</div>
+            </div>
+            <div class="bg-slate-800 rounded-lg p-4 border border-slate-700/50">
+              <div class="text-sm text-slate-400" data-i18n="extras">Extras</div>
+              <div id="summaryExtras" class="text-xl font-semibold text-white">₹0</div>
+            </div>
+            <div class="bg-slate-800 rounded-lg p-4 border border-slate-700/50">
+              <div class="text-sm text-slate-400" data-i18n="totalPrice">Total Price</div>
+              <div id="summaryTotal" class="text-xl font-semibold text-primary-400">₹0</div>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-4 items-center">
+            <div class="flex items-center gap-2">
+              <span class="text-slate-400" data-i18n="profitMargin">Profit Margin</span>
+              <span id="summaryMargin" class="font-semibold text-emerald-400">0%</span>
+            </div>
+            <button id="btnCopyClient" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium text-sm transition-colors" data-i18n="copyQuoteClient" data-i18n-tooltip="copyQuoteClient">Copy Quote for Client</button>
+          </div>
+          <div id="quoteIncludes" class="mt-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50 text-xs text-slate-400">
+            <span data-i18n="quoteIncludes">Quote includes:</span>
+            <span id="quoteAspectRatio" class="text-slate-300">—</span> · <span id="quoteFileFormat" class="text-slate-300">—</span>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Save Preset Modal -->
+  <div id="modalSave" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 rounded-xl border border-slate-700 max-w-md w-full p-6">
+      <h3 class="text-lg font-semibold mb-4" data-i18n="savePreset">Save Preset</h3>
+      <input type="text" id="modalPresetName" placeholder="Preset Name" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 mb-4 focus:ring-2 focus:ring-primary-500 outline-none">
+      <div class="flex gap-2 justify-end">
+        <button id="modalSaveCancel" class="px-4 py-2 rounded-lg border border-slate-600 hover:bg-slate-700" data-i18n="cancel">Cancel</button>
+        <button id="modalSaveConfirm" class="px-4 py-2 bg-primary-600 hover:bg-primary-500 rounded-lg font-medium" data-i18n="save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Edit Modal -->
+  <div id="modalQuickEdit" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 rounded-xl border border-slate-700 max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+      <div class="p-4 border-b border-slate-700">
+        <h3 class="text-lg font-semibold" data-i18n="quickEdit">Quick Edit</h3>
+        <p class="text-sm text-slate-400 mt-1" data-i18n="quickEditDesc">Update base prices for all presets at once</p>
+      </div>
+      <div id="quickEditList" class="p-4 overflow-y-auto flex-1 scrollbar-thin">
+        <!-- Dynamic list -->
+      </div>
+      <div class="p-4 border-t border-slate-700">
+        <button id="modalQuickEditClose" class="px-4 py-2 bg-slate-600 hover:bg-slate-500 rounded-lg" data-i18n="close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============ TRANSLATIONS ============
+    const translations = {
+      en: {
+        presets: "Presets",
+        savePreset: "Save Preset",
+        quickEdit: "Quick Edit",
+        language: "Language",
+        settings: "Settings",
+        hourlyLaborRate: "Hourly Labor Rate (₹)",
+        rushMultiplier: "Rush Multiplier (e.g. 1.5x)",
+        rushHours: "Rush if within (hours)",
+        markupPercent: "Markup %",
+        quoteCalculator: "Quote Calculator",
+        presetName: "Preset Name",
+        presetNamePlaceholder: "e.g. Premium Glossy Brochure",
+        category: "Category",
+        banner: "Banner",
+        brochure: "Brochure",
+        poster: "Poster",
+        apparel: "Apparel (T-Shirts)",
+        sticker: "Sticker",
+        pamphlet: "Pamphlet",
+        businessCard: "Business Card",
+        pricingUnit: "Pricing Formula",
+        pricingUnitHelp: "How the base price is multiplied: per item, per area, or bulk total",
+        perUnit: "Per Unit",
+        perSqFt: "Per Sq. Ft",
+        perSqIn: "Per Sq. Inch",
+        bulkQty: "Bulk Quantity",
+        predefinedSize: "Predefined Size",
+        sizeUnit: "Size Unit",
+        sizePreview: "Size Preview",
+        width: "Width",
+        height: "Height",
+        quantity: "Quantity",
+        basePrice: "Base Price per Unit (₹)",
+        qualityOptions: "Quality Variations (per category)",
+        qualityPlaceholder: "e.g. 100 GSM",
+        addQuality: "+ Add Quality",
+        customMaterialNotes: "Custom Material Notes",
+        materialNotesPlaceholder: "Free text for special material requirements",
+        paperDetails: "Paper / Printing Details",
+        gsm: "GSM / Thickness",
+        sides: "Sides",
+        singleSided: "Single Sided",
+        doubleSided: "Double Sided",
+        shape: "Shape / Folding",
+        shapePlaceholder: "e.g. A4, Tri-fold",
+        effortHours: "Effort Hours",
+        dieCutCost: "Die-Cut Cost (₹)",
+        dieCutType: "Die-Cut Type",
+        fixed: "Fixed",
+        neededBy: "Needed By",
+        transportationCost: "Transportation Cost (₹)",
+        miscCost: "Miscellaneous Cost (₹)",
+        quoteSummary: "Quote Summary",
+        productionCost: "Production Cost",
+        labor: "Labor",
+        extras: "Extras",
+        totalPrice: "Total Price",
+        profitMargin: "Profit Margin",
+        copyQuoteClient: "Copy Quote for Client",
+        cancel: "Cancel",
+        save: "Save",
+        close: "Close",
+        quickEditDesc: "Update base prices for all presets at once",
+        noPresets: "No presets saved yet.",
+        loadPreset: "Load",
+        deletePreset: "Delete",
+        rushApplied: "Rush fee applied",
+        clientQuote: "Client Quote (internal costs hidden)",
+        confirmDelete: "Delete this preset?",
+        custom: "Custom",
+        selectQuality: "Quality / Material",
+        selectQualityPlaceholder: "Select quality...",
+        qualityOptionsHelp: "Select a category below → Add quality name + price → Use in quote calculator.",
+        qualityCategory: "Category",
+        qualityPrice: "Price (₹)",
+        qualityOptionsSource: "Per category in Settings. Selected quality sets the unit price.",
+        qualityName: "Name",
+        qualityMultiplier: "Price Multiplier",
+        noQualityOptions: "No quality options yet. Add one below.",
+        addQualityOption: "+ Add",
+        searchPresetsPlaceholder: "Search presets...",
+        noSearchResults: "No presets match your search",
+        fileFormat: "File Format for Quote",
+        fileFormatHelp: "Recommended format per category. Included in client quote to avoid rework.",
+        aspectRatio: "Aspect Ratio",
+        formatLabel: "File Format",
+        quoteIncludes: "Quote includes"
+      },
+      tooltips: {
+        en: {
+          hourlyLaborRate: "How much you pay workers per hour. Used for Effort Hours calculation.",
+          rushMultiplier: "Extra charge when job is urgent. 1.5 = 50% extra.",
+          rushHours: "If delivery needed within this many hours, rush fee applies.",
+          markupPercent: "Your profit margin added on top of cost.",
+          presetName: "Give a name to save this setup for quick use later.",
+          category: "Type of print job.",
+          predefinedSize: "Select standard size (A4, Banner 6x2, etc.) to auto-fill dimensions.",
+          sizeUnit: "in = inches, cm = centimeters, ft = feet, mm = millimeters.",
+          width: "Width in the unit you selected above.",
+          height: "Height in the unit you selected above.",
+          quantity: "How many pieces.",
+          basePrice: "Price per unit/sq ft. Use if no quality selected. Quality overrides this.",
+          selectedQuality: "Select quality from Settings. That quality's price will be used.",
+          effortHours: "How many hours of work needed. × Labor Rate = labor cost.",
+          dieCutCost: "Cost for custom cutting/shape. Fixed = one-time, Per Unit = per piece.",
+          neededBy: "When customer needs delivery. If too soon, rush fee applies.",
+          transportCost: "Delivery/transport charges if any.",
+          miscCost: "Any other extra costs.",
+          copyQuoteClient: "Copies a clean quote (no internal costs) for sending to customer.",
+          savePreset: "Save this setup to load again later.",
+          quickEdit: "Change base price for all saved presets at once.",
+          searchPresets: "Type to filter preset list.",
+          qualityPrice: "Unit price for this quality. When selected in quote, this price is used.",
+          perUnit: "Price × quantity. E.g. T-shirts: ₹50 × 100 = ₹5000",
+          perSqFt: "Price × area (sq ft) × quantity. For banners, flex.",
+          perSqIn: "Price × area (sq inch) × quantity.",
+          bulkQty: "Same as Per Unit - price × quantity for bulk orders."
+        },
+        ta: {
+          hourlyLaborRate: "ஒரு மணி வேலைக்கு எவ்வளவு விகிதம். முயற்சி மணிகளுக்கு பயன்படுத்தப்படும்.",
+          rushMultiplier: "அவசர வேலைக்கு கூடுதல் கட்டணம். 1.5 = 50% கூடுதல்.",
+          rushHours: "இந்த மணியளவில் டெலிவரி தேவைப்பட்டால் rush fee வரும்.",
+          markupPercent: "செலவில் மேல் சேர்க்கும் லாப வரம்பு.",
+          presetName: "இந்த setup-க்கு பெயர் கொடுத்து பிறகு quick use பண்ண.",
+          category: "அச்சு வேலை வகை.",
+          predefinedSize: "Standard size select பண்ணி dimensions auto fill ஆகும்.",
+          sizeUnit: "in = அங்குலம், cm = சென்டி, ft = அடி, mm = மில்லி.",
+          width: "மேலே select பண்ணிய unit-ல் அகலம்.",
+          height: "மேலே select பண்ணிய unit-ல் உயரம்.",
+          quantity: "எத்தனை pieces.",
+          basePrice: "Quality select பண்ணலையானா இத use ஆகும். Quality select பண்ணினா அதுவே வரும்.",
+          selectedQuality: "Settings-லிருந்து quality select பண்ணு. அந்த price use ஆகும்.",
+          effortHours: "எத்தனை மணி வேலை தேவை. × Labor Rate = labor cost.",
+          dieCutCost: "Custom cutting செலவு. Fixed = ஒரே தடவை, Per Unit = ஒவ்வொரு piece-க்கும்.",
+          neededBy: "Customer எப்போ கேட்குறான். சீக்கிரமா இருந்தா rush fee.",
+          transportCost: "Delivery charges இருந்தா.",
+          miscCost: "மற்ற extra செலவுகள்.",
+          copyQuoteClient: "Customer-க்கு அனுப்ப clean quote copy ஆகும்.",
+          savePreset: "இந்த setup save பண்ணி பிறகு load பண்ணலாம்.",
+          quickEdit: "எல்லா presets-க்கும் base price ஒரே சமயத்தில் மாற்று.",
+          searchPresets: "Type பண்ணி preset list filter பண்ணு.",
+          qualityPrice: "இந்த quality-க்கு unit price. Quote-ல் select பண்ணினா இதுதான் use ஆகும்.",
+          perUnit: "Price × quantity. T-shirts போல.",
+          perSqFt: "Price × area (sq ft) × quantity. Banners-க்கு.",
+          perSqIn: "Price × area (sq inch) × quantity.",
+          bulkQty: "Per Unit போல - bulk order-க்கு."
+        },
+        "ta-en": {
+          hourlyLaborRate: "Workers-க்கு one hour rate எவ்வளவு. Effort hours calculation-க்கு use ஆகும்.",
+          rushMultiplier: "Urgent job நா price எவ்வளவு extra. 1.5 = 50% extra.",
+          rushHours: "இந்த hours-க்குள் delivery கேட்டா rush fee வரும்.",
+          markupPercent: "Cost-க்கு மேலே உன் profit add ஆகும்.",
+          presetName: "Setup-க்கு ஏதாவது name give பண்ணி save பண்ணு. பிறகு quick load பண்ணலாம்.",
+          category: "என்ன type print job.",
+          predefinedSize: "Standard size select பண்ணு (A4, 6x2 ft) - dimensions auto fill ஆகும்.",
+          sizeUnit: "in, cm, ft, mm - எந்த unit-ல் measure பண்ணுறே.",
+          width: "மேலே select பண்ணிய unit-ல் width.",
+          height: "மேலே select பண்ணிய unit-ல் height.",
+          quantity: "எத்தனை pieces வாங்குறான்.",
+          basePrice: "Per unit price. Quality select பண்ணலையானா இத use ஆகும். Quality select பண்ணினா அதுதான்.",
+          selectedQuality: "Settings-லிருந்து quality select பண்ணு. அந்த price automatically use ஆகும்.",
+          effortHours: "எத்தனை hours work தேவை. × Labor rate = labor cost.",
+          dieCutCost: "Custom cut-க்கு செலவு. Fixed = ஒரே தடவை, Per Unit = ஒவ்வொரு piece-க்கும்.",
+          neededBy: "Customer எப்போ want பண்ணுறான். Too soon ஆனா rush fee சேர்க்கும்.",
+          transportCost: "Delivery charges இருந்தா இங்கே போடு.",
+          miscCost: "வேற எதாவது extra செலவு இருந்தா.",
+          copyQuoteClient: "Customer-க்கு அனுப்ப clean quote - internal cost இருக்காது.",
+          savePreset: "இந்த setup save பண்ணி பிறகு எப்பவும் load பண்ணலாம்.",
+          quickEdit: "எல்லா saved presets-க்கும் base price ஒரே சமயத்தில் மாற்று.",
+          searchPresets: "Type பண்ணி preset list-இல் தேடு.",
+          qualityPrice: "இந்த quality-க்கு per piece price. Quote-ல் select பண்ணினா automatically இதுதான் use ஆகும்.",
+          perUnit: "Price × quantity. T-shirts போல ஒவ்வொரு piece-க்கும் rate.",
+          perSqFt: "Price × area (sq ft) × quantity. Banners போல.",
+          perSqIn: "Price × area (sq inch) × quantity.",
+          bulkQty: "Per Unit போல - bulk order-க்கு."
+        }
+      },
+      ta: {
+        presets: "முன்னரே தயாரிக்கப்பட்டவை",
+        savePreset: "சேமிக்கவும்",
+        quickEdit: "விரைவு திருத்தம்",
+        language: "மொழி",
+        settings: "அமைப்புகள்",
+        hourlyLaborRate: "மணிநேர தொழிலாளர் விகிதம் (₹)",
+        rushMultiplier: "அவசர பெருக்கல் (எ.கா 1.5x)",
+        rushHours: "அவசரம் - மணிநேரத்திற்குள்",
+        markupPercent: "மார்க்அப் %",
+        quoteCalculator: "விலைப்புள்ளி கணிப்பான்",
+        presetName: "முன்னரே தயாரிக்கப்பட்ட பெயர்",
+        presetNamePlaceholder: "எ.கா பிரீமியம் கிளாசி பதிப்பு",
+        category: "வகை",
+        banner: "பதாகை",
+        brochure: "புத்தக சுற்றுப்பதிப்பு",
+        poster: "போஸ்டர்",
+        apparel: "ஆடை (டி-சர்ட்)",
+        sticker: "ஸ்டிக்கர்",
+        pamphlet: "சிறுசேமிப்பு",
+        businessCard: "வணிக அட்டை",
+        pricingUnit: "விலை கணக்கீட்டு முறை",
+        pricingUnitHelp: "அடிப்படை விலை எவ்வாறு பெருக்கப்படுகிறது: பொருள், பரப்பு அல்லது மொத்த அளவு",
+        perUnit: "அலகுக்கு",
+        perSqFt: "சதுர அடிக்கு",
+        predefinedSize: "முன்னரே தீர்மானிக்கப்பட்ட அளவு",
+        sizeUnit: "அளவு அலகு",
+        sizePreview: "அளவு முன்னோட்டம்",
+        width: "அகலம்",
+        bulkQty: "மொத்த அளவு",
+        height: "உயரம்",
+        quantity: "அளவு",
+        basePrice: "அலகுக்கு அடிப்படை விலை (₹)",
+        qualityOptions: "தர மாறுபாடுகள் (வகைக்கு)",
+        qualityPlaceholder: "எ.கா 100 GSM",
+        addQuality: "+ தரம் சேர்க்கவும்",
+        customMaterialNotes: "தனிப்பட்ட பொருள் குறிப்புகள்",
+        materialNotesPlaceholder: "சிறப்பு தேவைகளுக்கான குறிப்பு",
+        paperDetails: "தாள் / அச்சு விவரங்கள்",
+        gsm: "GSM / தடிப்பு",
+        sides: "பக்கங்கள்",
+        singleSided: "ஒரு பக்கம்",
+        doubleSided: "இரட்டை பக்கம்",
+        shape: "வடிவம் / மடிப்பு",
+        shapePlaceholder: "எ.கா A4, மூன்று மடிப்பு",
+        effortHours: "முயற்சி மணிகள்",
+        dieCutCost: "டை-கட் செலவு (₹)",
+        dieCutType: "டை-கட் வகை",
+        fixed: "நிலையான",
+        neededBy: "தேவைப்படும் தேதி",
+        transportationCost: "போக்குவரத்து செலவு (₹)",
+        miscCost: "பிற செலவுகள் (₹)",
+        quoteSummary: "விலைப்புள்ளி சுருக்கம்",
+        productionCost: "உற்பத்தி செலவு",
+        labor: "வேலை நேரம்",
+        extras: "கூடுதல்",
+        totalPrice: "மொத்த விலை",
+        profitMargin: "லாப வரம்பு",
+        copyQuoteClient: "வாடிக்கையாளருக்கு நகல்",
+        cancel: "ரத்து",
+        save: "சேமிக்கவும்",
+        close: "மூடு",
+        quickEditDesc: "அனைத்து முன்னரே தயாரிக்கப்பட்டவற்றின் விலைகளை ஒரே அடியில் மாற்றவும்",
+        noPresets: "இன்னும் சேமிக்கப்பட்டவை இல்லை.",
+        loadPreset: "ஏற்று",
+        deletePreset: "அழி",
+        rushApplied: "அவசர கட்டணம் பொருந்தும்",
+        clientQuote: "வாடிக்கையாளர் விலைப்புள்ளி (உள் செலவுகள் மறைக்கப்பட்டுள்ளன)",
+        confirmDelete: "இந்த முன்னரே தயாரிக்கப்பட்டதை அழிக்கவா?",
+        custom: "தனிப்பயன்",
+        selectQuality: "தரம் / பொருள்",
+        selectQualityPlaceholder: "தரத்தை தேர்ந்தெடு...",
+        qualityOptionsHelp: "கீழே வகையை தேர்ந்தெடு → தர பெயர் + விலை சேர் → விலைப்புள்ளி கணிப்பானில் பயன்படுத்து.",
+        qualityCategory: "வகை",
+        qualityPrice: "விலை (₹)",
+        qualityOptionsSource: "வகைக்கு அமைப்புகளில். தேர்ந்தெடுக்கப்பட்ட தரம் அலகு விலையை அமைக்கிறது.",
+        qualityName: "பெயர்",
+        qualityMultiplier: "விலை பெருக்கி",
+        noQualityOptions: "இன்னும் தர விருப்பங்கள் இல்லை.",
+        addQualityOption: "+ சேர்",
+        searchPresetsPlaceholder: "முன்னரே தயாரிக்கப்பட்டவைகளை தேடு...",
+        noSearchResults: "தேடலுக்கு பொருந்தும் முடிவுகள் இல்லை",
+        fileFormat: "விலைப்புள்ளிக்கான கோப்பு வடிவம்",
+        fileFormatHelp: "வகைக்கு பரிந்துரைக்கப்பட்ட வடிவம். மறுசெயல்பாட்டை தவிர்க்க கிளையன் விலைப்புள்ளியில் சேர்க்கப்பட்டுள்ளது.",
+        aspectRatio: "விகிதம்",
+        formatLabel: "கோப்பு வடிவம்",
+        quoteIncludes: "விலைப்புள்ளியில் உள்ளது"
+      },
+      "ta-en": {
+        presets: "Presets",
+        savePreset: "Save Preset",
+        quickEdit: "Quick Edit",
+        language: "Language",
+        settings: "Settings",
+        hourlyLaborRate: "Hourly Labor Rate (₹)",
+        rushMultiplier: "Rush Multiplier (e.g. 1.5x)",
+        rushHours: "Rush if within (hours)",
+        markupPercent: "Markup %",
+        quoteCalculator: "Quote Calculator",
+        presetName: "Preset Name",
+        presetNamePlaceholder: "e.g. Premium Glossy Brochure",
+        category: "Category",
+        banner: "Banner",
+        brochure: "Brochure",
+        poster: "Poster",
+        apparel: "Apparel (T-Shirts)",
+        sticker: "Sticker",
+        pamphlet: "Pamphlet",
+        businessCard: "Business Card",
+        pricingUnit: "Pricing Formula",
+        pricingUnitHelp: "Base price எப்படி multiply ஆகும்: per item, per area, or bulk",
+        perUnit: "Per Unit",
+        perSqFt: "Per Sq. Ft",
+        perSqIn: "Per Sq. Inch",
+        bulkQty: "Bulk Quantity",
+        predefinedSize: "Predefined Size",
+        sizeUnit: "Size Unit",
+        sizePreview: "Size Preview",
+        width: "Width",
+        height: "Height",
+        quantity: "Quantity",
+        basePrice: "Base Price (₹)",
+        qualityOptions: "Quality Variations (per category)",
+        qualityPlaceholder: "e.g. 100 GSM",
+        addQuality: "+ Add Quality",
+        customMaterialNotes: "Custom Material Notes",
+        materialNotesPlaceholder: "Special requirements",
+        paperDetails: "Paper / Printing Details",
+        gsm: "GSM / Thickness",
+        sides: "Sides",
+        singleSided: "Single Sided",
+        doubleSided: "Double Sided",
+        shape: "Shape / Folding",
+        shapePlaceholder: "e.g. A4, Tri-fold",
+        effortHours: "Effort Hours",
+        dieCutCost: "Die-Cut Cost (₹)",
+        dieCutType: "Die-Cut Type",
+        fixed: "Fixed",
+        neededBy: "Needed By",
+        transportationCost: "Transport Cost (₹)",
+        miscCost: "Misc Cost (₹)",
+        quoteSummary: "Quote Summary",
+        productionCost: "Production Cost",
+        labor: "Labor",
+        extras: "Extras",
+        totalPrice: "Total Price",
+        profitMargin: "Profit Margin",
+        copyQuoteClient: "Copy Quote for Client",
+        cancel: "Cancel",
+        save: "Save",
+        close: "Close",
+        quickEditDesc: "All presets-இடம் base price ஒரே சமயத்தில் மாற்று",
+        noPresets: "No presets saved yet.",
+        loadPreset: "Load",
+        deletePreset: "Delete",
+        rushApplied: "Rush fee applied",
+        clientQuote: "Client Quote",
+        confirmDelete: "Delete this preset?",
+        custom: "Custom",
+        selectQuality: "Quality / Material",
+        selectQualityPlaceholder: "Select quality...",
+        qualityOptionsHelp: "Category select பண்ணி → quality name + price add பண்ணி → quote-ல் use பண்ணு.",
+        qualityCategory: "Category",
+        qualityPrice: "Price (₹)",
+        qualityOptionsSource: "Settings-ல் per category. Quality select பண்ணினா unit price set ஆகும்.",
+        qualityName: "Name",
+        qualityMultiplier: "Price Multiplier",
+        noQualityOptions: "No quality options yet. Add one below.",
+        addQualityOption: "+ Add",
+        searchPresetsPlaceholder: "Search presets...",
+        noSearchResults: "No presets match your search",
+        fileFormat: "File Format for Quote",
+        fileFormatHelp: "Categoryக்கு recommended format. Client quote-ல் include பண்ணுவோம்.",
+        aspectRatio: "Aspect Ratio",
+        formatLabel: "File Format",
+        quoteIncludes: "Quote includes"
+      }
+    };
+
+    // ============ PREDEFINED SIZES (w,h in inches; unit = preferred display unit) ============
+    const PREDEFINED_SIZES = {
+      banner: [
+        { id: 'b1', label: '6×2 ft', w: 72, h: 24, unit: 'ft' },
+        { id: 'b2', label: '5×1.5 ft', w: 60, h: 18, unit: 'ft' },
+        { id: 'b3', label: '4×3 ft', w: 48, h: 36, unit: 'ft' },
+        { id: 'b4', label: '3×2 ft', w: 36, h: 24, unit: 'ft' },
+        { id: 'b5', label: '5×2 ft', w: 60, h: 24, unit: 'ft' },
+        { id: 'b6', label: '8×4 ft', w: 96, h: 48, unit: 'ft' },
+        { id: 'b7', label: '10×5 ft', w: 120, h: 60, unit: 'ft' }
+      ],
+      brochure: [
+        { id: 'br1', label: 'A4', w: 8.27, h: 11.69, unit: 'mm' },
+        { id: 'br2', label: 'A3', w: 11.69, h: 16.54, unit: 'mm' },
+        { id: 'br3', label: 'A5', w: 5.83, h: 8.27, unit: 'mm' },
+        { id: 'br4', label: 'A6', w: 4.13, h: 5.83, unit: 'mm' },
+        { id: 'br5', label: 'DL', w: 3.9, h: 8.27, unit: 'mm' },
+        { id: 'br6', label: 'A2', w: 16.54, h: 23.39, unit: 'mm' }
+      ],
+      pamphlet: [
+        { id: 'p1', label: 'A4', w: 8.27, h: 11.69, unit: 'mm' },
+        { id: 'p2', label: 'A5', w: 5.83, h: 8.27, unit: 'mm' },
+        { id: 'p3', label: 'A6', w: 4.13, h: 5.83, unit: 'mm' },
+        { id: 'p4', label: 'DL', w: 3.9, h: 8.27, unit: 'mm' }
+      ],
+      poster: [
+        { id: 'po1', label: 'A4', w: 8.27, h: 11.69, unit: 'mm' },
+        { id: 'po2', label: 'A3', w: 11.69, h: 16.54, unit: 'mm' },
+        { id: 'po3', label: 'A2', w: 16.54, h: 23.39, unit: 'mm' },
+        { id: 'po4', label: 'A1', w: 23.39, h: 33.11, unit: 'mm' },
+        { id: 'po5', label: 'A0', w: 33.11, h: 46.81, unit: 'mm' }
+      ],
+      sticker: [
+        { id: 's1', label: '2×2 in', w: 2, h: 2, unit: 'in' },
+        { id: 's2', label: '3×3 in', w: 3, h: 3, unit: 'in' },
+        { id: 's3', label: '2×4 in', w: 2, h: 4, unit: 'in' },
+        { id: 's4', label: '3×5 in', w: 3, h: 5, unit: 'in' },
+        { id: 's5', label: '4×6 in', w: 4, h: 6, unit: 'in' },
+        { id: 's6', label: '1×3 in', w: 1, h: 3, unit: 'in' }
+      ],
+      businesscard: [
+        { id: 'bc1', label: 'Standard', w: 3.5, h: 2, unit: 'in' },
+        { id: 'bc2', label: 'Square', w: 2, h: 2, unit: 'in' },
+        { id: 'bc3', label: 'Euro', w: 3.35, h: 2.17, unit: 'in' }
+      ],
+      apparel: [
+        { id: 'a1', label: 'Chest 12×14 in', w: 12, h: 14, unit: 'in' },
+        { id: 'a2', label: 'Chest 14×16 in', w: 14, h: 16, unit: 'in' },
+        { id: 'a3', label: 'Full Front 18×18 in', w: 18, h: 18, unit: 'in' },
+        { id: 'a4', label: 'Back 14×20 in', w: 14, h: 20, unit: 'in' }
+      ]
+    };
+
+    const UNIT_TO_INCHES = { in: 1, cm: 1/2.54, ft: 12, mm: 1/25.4 };
+    const INCHES_TO_UNIT = { in: 1, cm: 2.54, ft: 1/12, mm: 25.4 };
+
+    const CATEGORIES = ['banner', 'brochure', 'poster', 'pamphlet', 'apparel', 'sticker', 'businesscard'];
+
+    // ============ STATE ============
+    let currentLang = localStorage.getItem('printquote_lang') || 'en';
+    let presets = JSON.parse(localStorage.getItem('printquote_presets') || '[]');
+    let settings = JSON.parse(localStorage.getItem('printquote_settings') || '{}');
+    const legacyQuality = Array.isArray(settings.qualityOptions) ? settings.qualityOptions : [];
+    const defaultQualityByCategory = {
+      brochure: [{ id: 'q1', name: '100 GSM', price: 8 }, { id: 'q2', name: '200 GSM', price: 12 }, { id: 'q3', name: '300 GSM', price: 18 }],
+      banner: [{ id: 'b1', name: 'Standard Vinyl', price: 45 }, { id: 'b2', name: 'Premium Vinyl', price: 65 }]
+    };
+    if (legacyQuality.length && !settings.qualityByCategory) {
+      defaultQualityByCategory.brochure = legacyQuality.map((q, i) => ({ id: q.id || 'q'+i, name: q.name, price: (q.multiplier || 1) * 10 }));
+    }
+    settings = {
+      hourlyLaborRate: settings.hourlyLaborRate ?? 500,
+      rushMultiplier: settings.rushMultiplier ?? 1.5,
+      rushHours: settings.rushHours ?? 48,
+      markupPercent: settings.markupPercent ?? 30,
+      qualityByCategory: settings.qualityByCategory ?? defaultQualityByCategory,
+      fileFormatByCategory: settings.fileFormatByCategory ?? {
+        banner: 'PDF, AI, 150 DPI min, CMYK',
+        brochure: 'PDF, AI, 300 DPI, CMYK',
+        poster: 'PDF, AI, 300 DPI, CMYK',
+        pamphlet: 'PDF, AI, 300 DPI, CMYK',
+        apparel: 'PNG/PSD, 300 DPI, transparent bg',
+        sticker: 'PDF, AI, PNG, 300 DPI',
+        businesscard: 'PDF, AI, 300 DPI, CMYK'
+      }
+    };
+
+    // ============ DOM ELEMENTS ============
+    const $ = id => document.getElementById(id);
+    const $$ = sel => document.querySelectorAll(sel);
+
+    // ============ I18N ============
+    function t(key) {
+      return translations[currentLang][key] || translations.en[key] || key;
+    }
+    function tt(key) {
+      const tt = translations.tooltips?.[currentLang] || translations.tooltips?.en;
+      return tt?.[key] || translations.tooltips?.en?.[key] || '';
+    }
+
+    function applyTranslations() {
+      document.documentElement.lang = (currentLang === 'ta' || currentLang === 'ta-en') ? 'ta' : 'en';
+      document.documentElement.setAttribute('data-lang', currentLang);
+      document.body.classList.toggle('tamil-display', currentLang === 'ta' || currentLang === 'ta-en');
+      $$('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (key && t(key)) el.textContent = t(key);
+      });
+      $$('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (key && t(key)) el.placeholder = t(key);
+      });
+      $$('select option[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (key && t(key)) el.textContent = t(key);
+      });
+      $$('[data-i18n-tooltip]').forEach(el => {
+        const key = el.getAttribute('data-i18n-tooltip');
+        const text = key && tt(key);
+        el.title = text || el.title || '';
+      });
+    }
+
+    // ============ SIZE HELPERS ============
+    function getWidthInches() {
+      const unit = $('sizeUnit')?.value || 'in';
+      const val = parseFloat($('width')?.value) || 0;
+      return val * UNIT_TO_INCHES[unit];
+    }
+    function getHeightInches() {
+      const unit = $('sizeUnit')?.value || 'in';
+      const val = parseFloat($('height')?.value) || 0;
+      return val * UNIT_TO_INCHES[unit];
+    }
+    function setSizeFromInches(wIn, hIn) {
+      const unit = $('sizeUnit')?.value || 'in';
+      const factor = INCHES_TO_UNIT[unit];
+      $('width').value = Math.round(wIn * factor * 100) / 100;
+      $('height').value = Math.round(hIn * factor * 100) / 100;
+      updateSizePreview();
+    }
+
+    function populatePredefinedSizes() {
+      const cat = $('category')?.value || 'banner';
+      const sizes = PREDEFINED_SIZES[cat] || PREDEFINED_SIZES.banner;
+      const sel = $('predefinedSize');
+      if (!sel) return;
+      sel.innerHTML = `<option value="">${t('custom')}</option>` + (sizes || []).map(s =>
+        `<option value="${s.id}">${s.label}</option>`
+      ).join('');
+    }
+
+    function updateSizePreview() {
+      const wIn = getWidthInches();
+      const hIn = getHeightInches();
+      const unit = $('sizeUnit')?.value || 'in';
+      const factor = INCHES_TO_UNIT[unit];
+      const el = $('sizePreviewShape');
+      const label = $('sizePreviewLabel');
+      if (!el || !label) return;
+      if (wIn <= 0 || hIn <= 0) {
+        el.style.width = '10%';
+        el.style.height = '10%';
+        label.textContent = '0 × 0';
+        return;
+      }
+      const aspect = wIn / hIn;
+      const containerAspect = 1;
+      let wPct, hPct;
+      if (aspect >= 1) {
+        wPct = 100;
+        hPct = Math.min(100, 100 / aspect);
+      } else {
+        hPct = 100;
+        wPct = Math.min(100, 100 * aspect);
+      }
+      el.style.width = wPct + '%';
+      el.style.height = hPct + '%';
+      const wDisp = Math.round((wIn * factor) * 100) / 100;
+      const hDisp = Math.round((hIn * factor) * 100) / 100;
+      const unitLabel = { in: 'in', cm: 'cm', ft: 'ft', mm: 'mm' }[unit];
+      label.textContent = `${wDisp} × ${hDisp} ${unitLabel}`;
+    }
+
+    // ============ QUALITY OPTIONS (per category, with price) ============
+    function getQualityOptions(category) {
+      const byCat = settings.qualityByCategory || {};
+      return byCat[category] || [];
+    }
+    function saveQualityForCategory(category, list) {
+      settings.qualityByCategory = settings.qualityByCategory || {};
+      settings.qualityByCategory[category] = list;
+      localStorage.setItem('printquote_settings', JSON.stringify(settings));
+      populateQualityDropdown();
+    }
+    function populateQualityOptionsList() {
+      const list = $('qualityOptionsList');
+      const catSel = $('qualitySettingsCategory');
+      if (!list || !catSel) return;
+      const cat = catSel.value || 'banner';
+      const opts = getQualityOptions(cat);
+      list.innerHTML = opts.map(q => `
+        <div class="flex items-center gap-2 py-1.5 px-2 bg-slate-800/50 rounded-lg group">
+          <input type="text" class="quality-edit-name flex-1 bg-slate-700/50 border border-slate-600 rounded px-2 py-0.5 text-sm min-w-0" value="${escapeHtml(q.name)}" data-id="${q.id}">
+          <input type="number" class="quality-edit-price w-16 bg-slate-700/50 border border-slate-600 rounded px-2 py-0.5 text-sm" value="${q.price}" min="0" step="0.5" data-id="${q.id}">
+          <span class="text-xs text-slate-500">₹</span>
+          <button type="button" class="remove-quality-opt text-red-400 hover:bg-red-500/20 rounded px-1.5 py-0.5 text-sm opacity-0 group-hover:opacity-100" data-id="${q.id}">×</button>
+        </div>
+      `).join('') || `<p class="text-sm text-slate-500 py-2">${t('noQualityOptions')}</p>`;
+      list.querySelectorAll('.quality-edit-name').forEach(inp => {
+        inp.addEventListener('change', () => {
+          const id = inp.dataset.id;
+          const opts = getQualityOptions(cat);
+          const q = opts.find(x => x.id === id);
+          if (q) q.name = inp.value.trim() || q.name;
+          saveQualityForCategory(cat, opts);
+        });
+      });
+      list.querySelectorAll('.quality-edit-price').forEach(inp => {
+        inp.addEventListener('change', () => {
+          const id = inp.dataset.id;
+          const opts = getQualityOptions(cat);
+          const q = opts.find(x => x.id === id);
+          if (q) q.price = parseFloat(inp.value) || 0;
+          saveQualityForCategory(cat, opts);
+        });
+      });
+      list.querySelectorAll('.remove-quality-opt').forEach(btn => {
+        btn.onclick = () => {
+          const id = btn.dataset.id;
+          saveQualityForCategory(cat, getQualityOptions(cat).filter(q => q.id !== id));
+          populateQualityOptionsList();
+        };
+      });
+    }
+    function populateQualityDropdown() {
+      const sel = $('selectedQuality');
+      if (!sel) return;
+      const cat = $('category')?.value || 'banner';
+      const opts = getQualityOptions(cat);
+      const current = sel.value;
+      sel.innerHTML = `<option value="">${t('selectQualityPlaceholder')}</option>` + opts.map(q =>
+        `<option value="${q.id}" data-price="${q.price}">${escapeHtml(q.name)} (₹${q.price})</option>`
+      ).join('');
+      if (current && opts.some(q => q.id === current)) sel.value = current;
+    }
+
+    // ============ FORM STATE ============
+    function getFormState() {
+      const unitType = document.querySelector('input[name="unitType"]:checked')?.value || 'per_unit';
+      return {
+        presetName: $('presetName').value.trim(),
+        category: $('category').value,
+        unitType,
+        sizeUnit: $('sizeUnit')?.value || 'in',
+        width: getWidthInches(),
+        height: getHeightInches(),
+        quantity: parseInt($('quantity').value) || 1,
+        basePrice: parseFloat($('basePrice').value) || 0,
+        selectedQuality: $('selectedQuality')?.value || '',
+        customMaterialNotes: $('customMaterialNotes').value.trim(),
+        gsm: $('gsm').value,
+        sides: parseInt($('sides').value) || 1,
+        shape: $('shape').value.trim(),
+        effortHours: parseFloat($('effortHours').value) || 0,
+        dieCutCost: parseFloat($('dieCutCost').value) || 0,
+        dieCutType: $('dieCutType').value,
+        neededBy: $('neededBy').value,
+        transportCost: parseFloat($('transportCost').value) || 0,
+        miscCost: parseFloat($('miscCost').value) || 0
+      };
+    }
+
+    function setFormState(state) {
+      if (!state) return;
+      $('presetName').value = state.presetName || '';
+      $('category').value = state.category || 'banner';
+      updatePaperSectionVisibility();
+      populatePredefinedSizes();
+      populateQualityDropdown();
+      $('predefinedSize').value = '';
+      document.querySelector(`input[name="unitType"][value="${state.unitType || 'per_unit'}"]`)?.click();
+      $('sizeUnit').value = state.sizeUnit || 'in';
+      setSizeFromInches(state.width ?? 0, state.height ?? 0);
+      $('quantity').value = state.quantity ?? 100;
+      $('basePrice').value = state.basePrice ?? 0;
+      $('selectedQuality').value = state.selectedQuality || '';
+      $('customMaterialNotes').value = state.customMaterialNotes || '';
+      $('gsm').value = state.gsm || '100';
+      $('sides').value = state.sides ?? 1;
+      $('shape').value = state.shape || '';
+      $('effortHours').value = state.effortHours ?? 0;
+      $('dieCutCost').value = state.dieCutCost ?? 0;
+      $('dieCutType').value = state.dieCutType || 'fixed';
+      $('neededBy').value = state.neededBy || '';
+      $('transportCost').value = state.transportCost ?? 0;
+      $('miscCost').value = state.miscCost ?? 0;
+    }
+
+    // ============ CALCULATIONS ============
+    function getSettings() {
+      return {
+        hourlyLaborRate: parseFloat($('hourlyLaborRate').value) || 500,
+        rushMultiplier: parseFloat($('rushMultiplier').value) || 1.5,
+        rushHours: parseInt($('rushHours').value) || 48,
+        markupPercent: parseFloat($('markupPercent').value) || 30,
+        qualityByCategory: settings.qualityByCategory || {},
+        fileFormatByCategory: settings.fileFormatByCategory || {}
+      };
+    }
+
+    function calculateQuote() {
+      const state = getFormState();
+      const s = getSettings();
+
+      let productionCost = 0;
+      const unitType = state.unitType;
+      const qty = Math.max(1, state.quantity);
+      let basePrice = state.basePrice;
+
+      const qualityOpt = getQualityOptions(state.category).find(q => q.id === state.selectedQuality);
+      if (qualityOpt) basePrice = qualityOpt.price;
+
+      if (unitType === 'per_unit' || unitType === 'bulk') {
+        productionCost = basePrice * qty;
+      } else if (unitType === 'per_sqft') {
+        const sqft = (state.width * state.height) / 144;
+        productionCost = basePrice * sqft * qty;
+      } else if (unitType === 'per_sqin') {
+        const sqin = state.width * state.height;
+        productionCost = basePrice * sqin * qty;
+      }
+
+      let dieCutTotal = state.dieCutCost;
+      if (state.dieCutType === 'per_unit') {
+        dieCutTotal = state.dieCutCost * qty;
+      }
+      productionCost += dieCutTotal;
+
+      const laborCost = state.effortHours * s.hourlyLaborRate;
+      const extrasCost = (state.transportCost || 0) + (state.miscCost || 0);
+
+      let subtotal = productionCost + laborCost + extrasCost;
+
+      let rushApplied = false;
+      const neededBy = state.neededBy ? new Date(state.neededBy) : null;
+      const now = new Date();
+      if (neededBy && neededBy > now) {
+        const hoursDiff = (neededBy - now) / (1000 * 60 * 60);
+        if (hoursDiff < s.rushHours) {
+          subtotal *= s.rushMultiplier;
+          rushApplied = true;
+        }
+      }
+
+      const markup = subtotal * (s.markupPercent / 100);
+      const totalPrice = subtotal + markup;
+      const internalCost = subtotal;
+      const profitMargin = internalCost > 0 ? ((totalPrice - internalCost) / totalPrice * 100).toFixed(1) : 0;
+
+      return {
+        productionCost,
+        laborCost,
+        extrasCost,
+        dieCutTotal,
+        subtotal,
+        rushApplied,
+        markup,
+        totalPrice,
+        profitMargin,
+        internalCost
+      };
+    }
+
+    function updateSummary() {
+      const calc = calculateQuote();
+      $('summaryProduction').textContent = `₹${calc.productionCost.toFixed(2)}`;
+      $('summaryLabor').textContent = `₹${calc.laborCost.toFixed(2)}`;
+      $('summaryExtras').textContent = `₹${(calc.extrasCost).toFixed(2)}`;
+      $('summaryTotal').textContent = `₹${calc.totalPrice.toFixed(2)}`;
+      $('summaryMargin').textContent = `${calc.profitMargin}%`;
+      const state = getFormState();
+      const arEl = $('quoteAspectRatio');
+      const ffEl = $('quoteFileFormat');
+      if (arEl) arEl.textContent = (t('aspectRatio') + ': ' + getAspectRatioString(state.width, state.height));
+      if (ffEl) ffEl.textContent = (t('formatLabel') + ': ' + getFileFormat(state.category));
+      if (calc.rushApplied) {
+        $('summaryTotal').classList.add('text-amber-400');
+        $('summaryTotal').title = t('rushApplied');
+      } else {
+        $('summaryTotal').classList.remove('text-amber-400');
+        $('summaryTotal').title = '';
+      }
+    }
+
+    // ============ PRESETS ============
+    function savePreset(name) {
+      const state = getFormState();
+      const preset = {
+        id: 'p_' + Date.now(),
+        displayName: name || state.presetName || 'Unnamed Preset',
+        category: state.category,
+        savedAt: new Date().toISOString(),
+        fields: state
+      };
+      const existing = presets.find(p => p.displayName === preset.displayName);
+      if (existing) {
+        preset.id = existing.id;
+        presets = presets.filter(p => p.id !== existing.id);
+      }
+      presets.push(preset);
+      localStorage.setItem('printquote_presets', JSON.stringify(presets));
+      renderPresetList();
+    }
+
+    function loadPreset(id) {
+      const preset = presets.find(p => p.id === id);
+      if (preset && preset.fields) setFormState(preset.fields);
+      updateSummary();
+      closeSidebar();
+    }
+
+    function deletePreset(id) {
+      presets = presets.filter(p => p.id !== id);
+      localStorage.setItem('printquote_presets', JSON.stringify(presets));
+      renderPresetList();
+    }
+
+    function renderPresetList() {
+      const list = $('presetList');
+      const searchTerm = ($('presetSearch')?.value || '').trim().toLowerCase();
+      const filtered = searchTerm
+        ? presets.filter(p => {
+            const name = (p.displayName || '').toLowerCase();
+            const cat = (t(p.category) || '').toLowerCase();
+            return name.includes(searchTerm) || cat.includes(searchTerm);
+          })
+        : presets;
+      if (filtered.length === 0) {
+        list.innerHTML = presets.length === 0
+          ? `<p class="text-sm text-slate-500 py-4" data-i18n="noPresets">${t('noPresets')}</p>`
+          : `<p class="text-sm text-slate-500 py-4">${t('noSearchResults')}</p>`;
+        return;
+      }
+      list.innerHTML = filtered.map(p => `
+        <div class="preset-item flex items-center justify-between gap-2 p-2 rounded-lg cursor-pointer group">
+          <div class="flex-1 min-w-0" data-load="${p.id}">
+            <div class="text-sm font-medium text-white truncate">${escapeHtml(p.displayName)}</div>
+            <div class="text-xs text-slate-500">${t(p.category)}</div>
+          </div>
+          <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button class="load-preset px-2 py-1 text-xs bg-primary-600 hover:bg-primary-500 rounded" data-id="${p.id}" data-i18n="loadPreset">${t('loadPreset')}</button>
+            <button class="delete-preset px-2 py-1 text-xs text-red-400 hover:bg-red-500/20 rounded" data-id="${p.id}" title="${t('deletePreset')}">×</button>
+          </div>
+        </div>
+      `).join('');
+
+      list.querySelectorAll('[data-load]').forEach(el => {
+        el.addEventListener('click', () => loadPreset(el.getAttribute('data-load')));
+      });
+      list.querySelectorAll('.load-preset').forEach(btn => {
+        btn.addEventListener('click', e => { e.stopPropagation(); loadPreset(btn.dataset.id); });
+      });
+      list.querySelectorAll('.delete-preset').forEach(btn => {
+        btn.addEventListener('click', e => { e.stopPropagation(); if (confirm(t('confirmDelete'))) deletePreset(btn.dataset.id); });
+      });
+    }
+
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    // ============ QUALITY OPTIONS ============
+
+    function getAspectRatioString(wIn, hIn) {
+      if (!wIn || !hIn) return '—';
+      const ratio = wIn / hIn;
+      if (Math.abs(ratio - 1) < 0.01) return '1:1';
+      if (ratio >= 1) return `${ratio.toFixed(2)}:1`;
+      return `1:${(1 / ratio).toFixed(2)}`;
+    }
+
+    function getFileFormat(category) {
+      const fmts = settings.fileFormatByCategory || {};
+      return fmts[category] || 'PDF, 300 DPI, CMYK';
+    }
+    function saveFileFormat(category, value) {
+      settings.fileFormatByCategory = settings.fileFormatByCategory || {};
+      settings.fileFormatByCategory[category] = value;
+      localStorage.setItem('printquote_settings', JSON.stringify(settings));
+    }
+    function populateFileFormatList() {
+      const list = $('fileFormatList');
+      if (!list) return;
+      const fmts = settings.fileFormatByCategory || {};
+      const defaultFmts = {
+        banner: 'PDF, AI, 150 DPI min, CMYK',
+        brochure: 'PDF, AI, 300 DPI, CMYK',
+        poster: 'PDF, AI, 300 DPI, CMYK',
+        pamphlet: 'PDF, AI, 300 DPI, CMYK',
+        apparel: 'PNG/PSD, 300 DPI, transparent bg',
+        sticker: 'PDF, AI, PNG, 300 DPI',
+        businesscard: 'PDF, AI, 300 DPI, CMYK'
+      };
+      list.innerHTML = CATEGORIES.map(cat => `
+        <div class="flex items-center gap-2 py-1.5">
+          <label class="w-24 text-xs text-slate-400 flex-shrink-0">${t(cat)}</label>
+          <input type="text" class="file-format-input flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm" value="${escapeHtml(fmts[cat] || defaultFmts[cat] || '')}" data-cat="${cat}" placeholder="PDF, 300 DPI...">
+        </div>
+      `).join('');
+      list.querySelectorAll('.file-format-input').forEach(inp => {
+        inp.addEventListener('change', () => saveFileFormat(inp.dataset.cat, inp.value.trim()));
+      });
+    }
+
+    // ============ CLIENT QUOTE ============
+    function generateClientQuote() {
+      const state = getFormState();
+      const calc = calculateQuote();
+      const catLabels = { banner: t('banner'), brochure: t('brochure'), poster: t('poster'), apparel: t('apparel'), sticker: t('sticker'), pamphlet: t('pamphlet'), businesscard: t('businessCard') };
+      const service = catLabels[state.category] || state.category;
+
+      const unit = state.sizeUnit || 'in';
+      const factor = INCHES_TO_UNIT[unit];
+      const wDisp = Math.round((state.width * factor) * 100) / 100;
+      const hDisp = Math.round((state.height * factor) * 100) / 100;
+      const unitLabel = { in: 'in', cm: 'cm', ft: 'ft', mm: 'mm' }[unit];
+      let spec = `${wDisp}×${hDisp} ${unitLabel}`;
+      const qualityOpt = getQualityOptions(state.category).find(q => q.id === state.selectedQuality);
+      if (qualityOpt) spec += `, ${qualityOpt.name}`;
+      if (state.gsm && state.gsm !== 'custom') spec += `, ${state.gsm} GSM`;
+      if (state.sides === 2) spec += `, ${t('doubleSided')}`;
+      if (state.shape) spec += `, ${state.shape}`;
+      if (state.customMaterialNotes) spec += `, ${state.customMaterialNotes}`;
+
+      const aspectRatio = getAspectRatioString(state.width, state.height);
+      const fileFormat = getFileFormat(state.category);
+
+      const isTamil = currentLang === 'ta';
+      const isTanglish = currentLang === 'ta-en';
+      const quoteLabels = isTamil ? { title: 'விலைப்புள்ளி', service: 'சேவை:', specs: 'விவரங்கள்:', aspect: 'விகிதம்:', format: 'கோப்பு வடிவம்:', qty: 'அளவு:', total: 'மொத்த விலை:', date: 'தேதி:' } :
+        isTanglish ? { title: 'QUOTE', service: 'Service:', specs: 'Specs:', aspect: 'Aspect Ratio:', format: 'File Format:', qty: 'Quantity:', total: 'Total Price:', date: 'Date:' } :
+        { title: 'QUOTE', service: 'Service:', specs: 'Specs:', aspect: 'Aspect Ratio:', format: 'File Format:', qty: 'Quantity:', total: 'Total Price:', date: 'Date:' };
+      const dateLocale = (isTamil || isTanglish) ? 'ta-IN' : 'en-IN';
+      const lines = [
+        '═══════════════════════════════',
+        quoteLabels.title,
+        '═══════════════════════════════',
+        '',
+        quoteLabels.service + ' ' + service,
+        quoteLabels.specs + ' ' + spec,
+        quoteLabels.aspect + ' ' + aspectRatio,
+        quoteLabels.format + ' ' + fileFormat,
+        quoteLabels.qty + ' ' + state.quantity,
+        quoteLabels.total + ' ₹' + calc.totalPrice.toFixed(2),
+        quoteLabels.date + ' ' + new Date().toLocaleDateString(dateLocale),
+        '',
+        '═══════════════════════════════'
+      ];
+      return lines.join('\n');
+    }
+
+    // ============ QUICK EDIT ============
+    function openQuickEdit() {
+      const modal = $('modalQuickEdit');
+      const list = $('quickEditList');
+      if (presets.length === 0) {
+        list.innerHTML = `<p class="text-slate-400">${t('noPresets')}</p>`;
+      } else {
+        list.innerHTML = presets.map(p => `
+          <div class="flex items-center gap-4 py-3 border-b border-slate-700 last:border-0">
+            <span class="flex-1 text-sm font-medium truncate">${escapeHtml(p.displayName)}</span>
+            <input type="number" class="preset-base-price w-28 bg-slate-700 border border-slate-600 rounded px-2 py-1 text-sm" value="${p.fields?.basePrice ?? 0}" min="0" step="0.01" data-id="${p.id}">
+          </div>
+        `).join('');
+        list.querySelectorAll('.preset-base-price').forEach(inp => {
+          inp.addEventListener('change', () => {
+            const preset = presets.find(p => p.id === inp.dataset.id);
+            if (preset && preset.fields) preset.fields.basePrice = parseFloat(inp.value) || 0;
+            localStorage.setItem('printquote_presets', JSON.stringify(presets));
+          });
+        });
+      }
+      modal.classList.remove('hidden');
+    }
+
+    function updatePaperSectionVisibility() {
+      const cat = $('category')?.value;
+      const paperCat = ['banner', 'brochure', 'poster', 'pamphlet', 'businesscard'];
+      const section = $('paperSection');
+      if (section) section.style.display = paperCat.includes(cat) ? 'block' : 'none';
+    }
+
+    function closeSidebar() {
+      $('sidebar')?.classList.add('-translate-x-full');
+      $('sidebarOverlay')?.classList.add('hidden');
+    }
+
+    function openSidebar() {
+      $('sidebar')?.classList.remove('-translate-x-full');
+      $('sidebarOverlay')?.classList.remove('hidden');
+    }
+
+    // ============ INIT ============
+    function init() {
+      $('langToggle').value = currentLang;
+      $('langToggle').addEventListener('change', () => {
+        currentLang = $('langToggle').value;
+        localStorage.setItem('printquote_lang', currentLang);
+        applyTranslations();
+        populateQualityDropdown();
+        updateSummary();
+      });
+
+      $('hourlyLaborRate').value = settings.hourlyLaborRate;
+      $('rushMultiplier').value = settings.rushMultiplier;
+      $('rushHours').value = settings.rushHours;
+      $('markupPercent').value = settings.markupPercent;
+
+      $('btnOpenSidebar')?.addEventListener('click', openSidebar);
+      $('toggleSidebar')?.addEventListener('click', closeSidebar);
+      $('sidebarOverlay')?.addEventListener('click', closeSidebar);
+
+      $('presetSearch')?.addEventListener('input', renderPresetList);
+
+      $('category')?.addEventListener('change', () => {
+        updatePaperSectionVisibility();
+        populatePredefinedSizes();
+        $('predefinedSize').value = '';
+        populateQualityDropdown();
+        $('selectedQuality').value = '';
+        updateSizePreview();
+      });
+
+      $('qualitySettingsCategory')?.addEventListener('change', populateQualityOptionsList);
+
+      $('predefinedSize')?.addEventListener('change', () => {
+        const id = $('predefinedSize').value;
+        if (!id) return;
+        const cat = $('category')?.value || 'banner';
+        const sizes = PREDEFINED_SIZES[cat] || PREDEFINED_SIZES.banner;
+        const s = sizes.find(x => x.id === id);
+        if (s) {
+          $('sizeUnit').value = s.unit || 'in';
+          setSizeFromInches(s.w, s.h);
+        }
+      });
+
+      $('sizeUnit')?.addEventListener('change', () => {
+        const wIn = getWidthInches();
+        const hIn = getHeightInches();
+        setSizeFromInches(wIn, hIn);
+      });
+
+      $('width')?.addEventListener('input', () => { $('predefinedSize').value = ''; updateSizePreview(); });
+      $('height')?.addEventListener('input', () => { $('predefinedSize').value = ''; updateSizePreview(); });
+
+      $('toggleSettings').addEventListener('click', () => {
+        const panel = $('settingsPanel');
+        const chevron = $('settingsChevron');
+        panel.classList.toggle('hidden');
+        chevron.classList.toggle('rotate-180', !panel.classList.contains('hidden'));
+        if (!panel.classList.contains('hidden')) {
+          populateQualityOptionsList();
+          populateFileFormatList();
+        }
+      });
+
+      $('addQualityOption')?.addEventListener('click', () => {
+        const name = $('newQualityName')?.value?.trim();
+        if (!name) return;
+        const price = parseFloat($('newQualityPrice')?.value) || 0;
+        const cat = $('qualitySettingsCategory')?.value || 'banner';
+        const opts = [...getQualityOptions(cat)];
+        const id = 'q' + (Date.now().toString(36));
+        opts.push({ id, name, price });
+        saveQualityForCategory(cat, opts);
+        populateQualityOptionsList();
+        $('newQualityName').value = '';
+        $('newQualityPrice').value = '0';
+      });
+
+      $('btnSavePreset').addEventListener('click', () => {
+        const name = $('presetName').value.trim() || undefined;
+        if (name) {
+          savePreset(name);
+        } else {
+          $('modalPresetName').value = '';
+          $('modalSave').classList.remove('hidden');
+        }
+      });
+
+      $('modalSaveConfirm').addEventListener('click', () => {
+        const name = $('modalPresetName').value.trim();
+        if (name) {
+          savePreset(name);
+          $('modalSave').classList.add('hidden');
+        }
+      });
+      $('modalSaveCancel').addEventListener('click', () => {
+        $('modalSave').classList.add('hidden');
+      });
+
+      $('btnQuickEdit').addEventListener('click', openQuickEdit);
+      $('modalQuickEditClose').addEventListener('click', () => {
+        $('modalQuickEdit').classList.add('hidden');
+      });
+
+      $('btnCopyClient').addEventListener('click', () => {
+        const text = generateClientQuote();
+        navigator.clipboard.writeText(text).then(() => {
+          const btn = $('btnCopyClient');
+          const orig = btn.textContent;
+          btn.textContent = (currentLang === 'ta') ? 'நகல் எடுக்கப்பட்டது!' : 'Copied!';
+          setTimeout(() => btn.textContent = orig, 2000);
+        });
+      });
+
+      // Save settings on change
+      ['hourlyLaborRate', 'rushMultiplier', 'rushHours', 'markupPercent'].forEach(id => {
+        $(id)?.addEventListener('change', () => {
+          settings = getSettings();
+          localStorage.setItem('printquote_settings', JSON.stringify(settings));
+        });
+      });
+
+      // Recalculate on any input change
+      const inputs = $$('input, select');
+      inputs.forEach(inp => inp.addEventListener('input', updateSummary));
+      inputs.forEach(inp => inp.addEventListener('change', updateSummary));
+
+      applyTranslations();
+      populateQualityOptionsList();
+      populateQualityDropdown();
+      populatePredefinedSizes();
+      updatePaperSectionVisibility();
+      updateSizePreview();
+      renderPresetList();
+      updateSummary();
+
+      // Set default neededBy to 3 days from now
+      const d = new Date();
+      d.setDate(d.getDate() + 3);
+      $('neededBy').value = d.toISOString().slice(0, 16);
+    }
+
+    init();
+  </script>
+</body>
+</html>
