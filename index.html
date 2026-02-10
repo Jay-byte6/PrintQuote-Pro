@@ -35,7 +35,27 @@
   </style>
 </head>
 <body class="bg-slate-925 text-slate-100 min-h-screen antialiased">
-  <div id="app" class="flex flex-col lg:flex-row min-h-screen">
+  <!-- Login Screen -->
+  <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-925 p-4 hidden">
+    <div class="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-800/90 p-6 shadow-xl">
+      <h1 class="text-xl font-bold text-white text-center mb-6">PrintQuote Pro</h1>
+      <p class="text-sm text-slate-400 text-center mb-4">Sign in to continue</p>
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label for="loginUsername" class="block text-sm text-slate-400 mb-1">Username</label>
+          <input type="text" id="loginUsername" autocomplete="username" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Username">
+        </div>
+        <div>
+          <label for="loginPassword" class="block text-sm text-slate-400 mb-1">Password</label>
+          <input type="password" id="loginPassword" autocomplete="current-password" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Password">
+        </div>
+        <p id="loginError" class="text-sm text-red-400 hidden">Invalid username or password.</p>
+        <button type="submit" class="w-full py-2.5 bg-primary-600 hover:bg-primary-500 rounded-lg font-medium transition-colors">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="app" class="flex flex-col lg:flex-row min-h-screen hidden">
     <!-- Sidebar - Preset Management -->
     <aside id="sidebar" class="w-full lg:w-72 bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-700/50 flex-shrink-0 no-print transition-transform lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-30 lg:z-auto -translate-x-full">
       <div class="p-4 border-b border-slate-700/50">
@@ -79,6 +99,7 @@
                 <option value="ta-en">Tanglish (தமிழ்+English)</option>
               </select>
             </label>
+            <button type="button" id="btnLogout" class="ml-auto px-3 py-1.5 text-sm text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500 rounded-lg transition-colors">Logout</button>
           </div>
         </div>
       </header>
@@ -350,8 +371,8 @@
         <section class="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4 lg:p-6">
           <h2 class="text-lg font-semibold mb-4" data-i18n="quoteSummary">Quote Summary</h2>
           <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <div class="bg-slate-800 rounded-lg p-4 border border-slate-700/50">
-              <div class="text-sm text-slate-400" data-i18n="productionCost">Production Cost</div>
+            <div class="bg-slate-800 rounded-lg p-4 border border-slate-700/50 cursor-help" id="summaryProductionBox" title="">
+              <div class="text-sm text-slate-400 flex items-center gap-1" data-i18n="productionCost">Production Cost <span class="text-slate-500" aria-label="How calculated">ⓘ</span></div>
               <div id="summaryProduction" class="text-xl font-semibold text-white">₹0</div>
             </div>
             <div class="bg-slate-800 rounded-lg p-4 border border-slate-700/50">
@@ -1143,14 +1164,18 @@
       const qualityOpt = getQualityOptions(state.category).find(q => q.id === state.selectedQuality);
       if (qualityOpt) basePrice = qualityOpt.price;
 
+      let formulaText = '';
       if (unitType === 'per_unit' || unitType === 'bulk') {
         productionCost = basePrice * qty;
+        formulaText = `Base ₹${basePrice.toFixed(2)} × ${qty} qty = ₹${(basePrice * qty).toFixed(2)}`;
       } else if (unitType === 'per_sqft') {
         const sqft = (state.width * state.height) / 144;
         productionCost = basePrice * sqft * qty;
+        formulaText = `Base ₹${basePrice.toFixed(2)}/sq ft × ${sqft.toFixed(2)} sq ft × ${qty} qty = ₹${(basePrice * sqft * qty).toFixed(2)}`;
       } else if (unitType === 'per_sqin') {
         const sqin = state.width * state.height;
         productionCost = basePrice * sqin * qty;
+        formulaText = `Base ₹${basePrice.toFixed(2)}/sq in × ${sqin.toFixed(0)} sq in × ${qty} qty = ₹${(basePrice * sqin * qty).toFixed(2)}`;
       }
 
       let dieCutTotal = state.dieCutCost;
@@ -1158,6 +1183,12 @@
         dieCutTotal = state.dieCutCost * qty;
       }
       productionCost += dieCutTotal;
+      if (dieCutTotal > 0) {
+        formulaText += (formulaText ? '\n' : '') + (state.dieCutType === 'per_unit'
+          ? `Die-cut ₹${state.dieCutCost.toFixed(2)} × ${qty} = ₹${dieCutTotal.toFixed(2)}`
+          : `Die-cut (fixed) ₹${dieCutTotal.toFixed(2)}`);
+      }
+      const productionCostBreakdown = formulaText ? (formulaText + '\nTotal production = ₹' + productionCost.toFixed(2)) : 'Enter size, quantity and base price to see calculation.';
 
       const laborCost = state.effortHours * s.hourlyLaborRate;
       const extrasCost = (state.transportCost || 0) + (state.miscCost || 0);
@@ -1199,13 +1230,16 @@
         profitMargin,
         internalCost,
         perUnitPrice,
-        quantity: qty
+        quantity: qty,
+        productionCostBreakdown
       };
     }
 
     function updateSummary() {
       const calc = calculateQuote();
       $('summaryProduction').textContent = `₹${calc.productionCost.toFixed(2)}`;
+      const prodBox = $('summaryProductionBox');
+      if (prodBox) prodBox.title = calc.productionCostBreakdown || '';
       $('summaryLabor').textContent = `₹${calc.laborCost.toFixed(2)}`;
       $('summaryExtras').textContent = `₹${(calc.extrasCost).toFixed(2)}`;
       $('summaryTotal').textContent = `₹${calc.totalPrice.toFixed(2)}`;
@@ -1437,8 +1471,59 @@
       $('sidebarOverlay')?.classList.remove('hidden');
     }
 
+    // ============ AUTH ============
+    const AUTH_USER = 'PrintQuote';
+    const AUTH_PASS = 'PrintQuote123';
+
+    function showLogin() {
+      const loginEl = document.getElementById('loginScreen');
+      const appEl = document.getElementById('app');
+      if (loginEl) loginEl.classList.remove('hidden');
+      if (appEl) appEl.classList.add('hidden');
+    }
+    function showApp() {
+      const loginEl = document.getElementById('loginScreen');
+      const appEl = document.getElementById('app');
+      if (loginEl) loginEl.classList.add('hidden');
+      if (appEl) appEl.classList.remove('hidden');
+    }
+
+    function initAuth() {
+      if (sessionStorage.getItem('printquote_auth') !== '1') {
+        showLogin();
+        const form = document.getElementById('loginForm');
+        const errEl = document.getElementById('loginError');
+        if (form && !form.dataset.bound) {
+          form.dataset.bound = '1';
+          form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const user = (document.getElementById('loginUsername')?.value || '').trim();
+            const pass = document.getElementById('loginPassword')?.value || '';
+            if (user === AUTH_USER && pass === AUTH_PASS) {
+              sessionStorage.setItem('printquote_auth', '1');
+              if (errEl) errEl.classList.add('hidden');
+              showApp();
+              init();
+            } else {
+              if (errEl) errEl.classList.remove('hidden');
+            }
+          });
+        }
+        return false;
+      }
+      showApp();
+      return true;
+    }
+
     // ============ INIT ============
     function init() {
+      if (!initAuth()) return;
+
+      $('btnLogout')?.addEventListener('click', () => {
+        sessionStorage.removeItem('printquote_auth');
+        location.reload();
+      });
+
       $('langToggle').value = currentLang;
       $('langToggle').addEventListener('change', () => {
         currentLang = $('langToggle').value;
