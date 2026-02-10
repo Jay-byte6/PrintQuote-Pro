@@ -47,7 +47,13 @@
         </div>
         <div>
           <label for="loginPassword" class="block text-sm text-slate-400 mb-1">Password</label>
-          <input type="password" id="loginPassword" autocomplete="current-password" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Password">
+          <div class="relative">
+            <input type="password" id="loginPassword" autocomplete="current-password" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 pr-10 text-white focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Password">
+            <button type="button" id="togglePasswordVisibility" class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded text-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-500" aria-label="Show password" title="Show password">
+              <svg id="iconEye" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+              <svg id="iconEyeOff" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+            </button>
+          </div>
         </div>
         <p id="loginError" class="text-sm text-red-400 hidden">Invalid username or password.</p>
         <button type="submit" class="w-full py-2.5 bg-primary-600 hover:bg-primary-500 rounded-lg font-medium transition-colors">Sign In</button>
@@ -371,8 +377,11 @@
         <section class="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4 lg:p-6">
           <h2 class="text-lg font-semibold mb-4" data-i18n="quoteSummary">Quote Summary</h2>
           <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <div class="bg-slate-800 rounded-lg p-4 border border-slate-700/50 cursor-help" id="summaryProductionBox" title="">
-              <div class="text-sm text-slate-400 flex items-center gap-1" data-i18n="productionCost">Production Cost <span class="text-slate-500" aria-label="How calculated">ⓘ</span></div>
+            <div class="bg-slate-800 rounded-lg p-4 border border-slate-700/50" id="summaryProductionBox">
+              <div class="text-sm text-slate-400 flex items-center gap-1">
+                <span data-i18n="productionCost">Production Cost</span>
+                <button type="button" id="btnProductionCostHelp" class="p-0.5 rounded text-slate-500 hover:text-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 focus:ring-offset-slate-800" aria-label="How cost is calculated" title="Click to see calculation">ⓘ</button>
+              </div>
               <div id="summaryProduction" class="text-xl font-semibold text-white">₹0</div>
             </div>
             <div class="bg-slate-800 rounded-lg p-4 border border-slate-700/50">
@@ -434,6 +443,17 @@
       </div>
       <div class="p-4 border-t border-slate-700">
         <button id="modalQuickEditClose" class="px-4 py-2 bg-slate-600 hover:bg-slate-500 rounded-lg" data-i18n="close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Production Cost Breakdown Modal (click ⓘ to open on mobile/web) -->
+  <div id="modalProductionCostHelp" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 rounded-xl border border-slate-700 max-w-md w-full p-6">
+      <h3 class="text-lg font-semibold mb-3">How Production Cost is Calculated</h3>
+      <pre id="productionCostBreakdownText" class="text-sm text-slate-300 whitespace-pre-line font-sans bg-slate-700/50 rounded-lg p-4 overflow-x-auto">Enter size, quantity and base price to see calculation.</pre>
+      <div class="mt-4 flex justify-end">
+        <button type="button" id="modalProductionCostHelpClose" class="px-4 py-2 bg-slate-600 hover:bg-slate-500 rounded-lg" data-i18n="close">Close</button>
       </div>
     </div>
   </div>
@@ -1508,6 +1528,22 @@
               if (errEl) errEl.classList.remove('hidden');
             }
           });
+          const toggleBtn = document.getElementById('togglePasswordVisibility');
+          const passInput = document.getElementById('loginPassword');
+          const iconEye = document.getElementById('iconEye');
+          const iconEyeOff = document.getElementById('iconEyeOff');
+          if (toggleBtn && passInput) {
+            toggleBtn.addEventListener('click', () => {
+              const isPassword = passInput.type === 'password';
+              passInput.type = isPassword ? 'text' : 'password';
+              toggleBtn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+              toggleBtn.setAttribute('title', isPassword ? 'Hide password' : 'Show password');
+              if (iconEye && iconEyeOff) {
+                iconEye.classList.toggle('hidden', isPassword);
+                iconEyeOff.classList.toggle('hidden', !isPassword);
+              }
+            });
+          }
         }
         return false;
       }
@@ -1627,6 +1663,19 @@
       $('btnQuickEdit').addEventListener('click', openQuickEdit);
       $('modalQuickEditClose').addEventListener('click', () => {
         $('modalQuickEdit').classList.add('hidden');
+      });
+
+      $('btnProductionCostHelp')?.addEventListener('click', () => {
+        const calc = calculateQuote();
+        const textEl = $('productionCostBreakdownText');
+        if (textEl) textEl.textContent = calc.productionCostBreakdown || 'Enter size, quantity and base price to see calculation.';
+        $('modalProductionCostHelp').classList.remove('hidden');
+      });
+      $('modalProductionCostHelpClose')?.addEventListener('click', () => {
+        $('modalProductionCostHelp').classList.add('hidden');
+      });
+      $('modalProductionCostHelp')?.addEventListener('click', (e) => {
+        if (e.target === $('modalProductionCostHelp')) $('modalProductionCostHelp').classList.add('hidden');
       });
 
       $('btnCopyClient').addEventListener('click', () => {
